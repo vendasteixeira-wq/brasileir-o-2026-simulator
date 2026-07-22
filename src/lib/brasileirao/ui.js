@@ -8,7 +8,7 @@ export function initBrasileirao(root) {
   let CF = '4-3-3';
   let SS = -1;
   let lt = 0;
-  const speeds = [1, 2, 4, 8];
+  const speeds = [1, 2, 4, 8, 16];
   let si = 0;
   let rafId = 0;
 
@@ -76,6 +76,24 @@ export function initBrasileirao(root) {
     toast('Partida: ' + h + ' vs ' + a, 'ok');
   });
   $('bP').addEventListener('click', () => { if (SIM) SIM.pause(); });
+  $('bQ').addEventListener('click', () => {
+    const h = $('ht').value, a = $('at').value;
+    if (h === a) { toast('Selecione times diferentes!', 'wr'); return; }
+    rsCV();
+    SIM = new Sim(cv, h, a);
+    SIM.quickSim();
+    SIM.render();
+    hh.textContent = SIM.hc;
+    ha.textContent = SIM.ac;
+    hsc.textContent = SIM.sc2.h + ' - ' + SIM.sc2.a;
+    htm.textContent = "90'";
+    hxg.textContent = 'xG ' + SIM.xg.h.toFixed(2) + ' - ' + SIM.xg.a.toFixed(2);
+    mst.innerHTML = SIM.gSH();
+    elog.innerHTML = SIM.gEH();
+    ppnl.innerHTML = '<div style="grid-column:1/-1;color:var(--ac);text-align:center;padding:10px;font-size:11px;font-weight:600">Partida simulada instantaneamente</div>';
+    const w = SIM.sc2.h > SIM.sc2.a ? h : SIM.sc2.a > SIM.sc2.h ? a : 'Empate';
+    toast(w === 'Empate' ? 'Empate: ' + SIM.sc2.h + 'x' + SIM.sc2.a : w + ' venceu ' + SIM.sc2.h + 'x' + SIM.sc2.a, 'ok');
+  });
   $('bR').addEventListener('click', () => {
     if (SIM) SIM.reset();
     hsc.textContent = '0 - 0';

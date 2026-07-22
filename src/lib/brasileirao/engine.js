@@ -475,6 +475,69 @@ export class Sim {
 
   setSpd(s) { this.spd = s; }
 
+  quickSim() {
+    this.reset();
+    const hp = gtp(this.hc), ap = gtp(this.ac);
+    const hOvr = gto(this.hc), aOvr = gto(this.ac);
+    const hFwd = hp.filter(p => p.pos !== 'GK' && pc(p.pos) !== 'DEF');
+    const aFwd = ap.filter(p => p.pos !== 'GK' && pc(p.pos) !== 'DEF');
+    const events = [];
+    const numShots = 10 + Math.floor(Math.random() * 14);
+
+    for (let i = 0; i < numShots; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const isHome = Math.random() < (hOvr + 1) / (hOvr + aOvr + 2);
+      const team = isHome ? 'h' : 'a';
+      const pool = isHome ? hFwd : aFwd;
+      if (!pool.length) continue;
+      const shooter = pool[Math.floor(Math.random() * pool.length)];
+      const xg = 0.03 + Math.random() * 0.45;
+      this.xg[team] += xg;
+      this.st[team].sh++;
+      if (Math.random() < xg * 1.6) {
+        this.sc2[team]++;
+        this.st[team].ot++;
+        events.push({ min, tp: 'gl', tx: `GOL ${isHome ? this.hc : this.ac}! ${shooter.name} ${min}'` });
+      } else {
+        const onTarget = Math.random() < 0.35;
+        if (onTarget) this.st[team].ot++;
+        events.push({ min, tp: 'sh', tx: `${shooter.name} chuta!${onTarget ? ' No alvo!' : ' Fora!'}${xg >= 0.25 ? ' (xG ' + xg.toFixed(2) + ')' : ''}` });
+      }
+    }
+
+    const numFouls = 6 + Math.floor(Math.random() * 10);
+    for (let i = 0; i < numFouls; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const isHome = Math.random() < 0.5;
+      const pool = isHome ? hp : ap;
+      const fouler = pool[Math.floor(Math.random() * pool.length)];
+      if (fouler) { this.st[isHome ? 'h' : 'a'].fl++; events.push({ min, tp: 'fl', tx: `Falta de ${fouler.name}` }); }
+    }
+
+    events.sort((a, b) => a.min - b.min);
+    events.forEach(e => this.aev(e.min, e.tp, e.tx));
+
+    this.st.h.pa = 250 + Math.floor(Math.random() * 200);
+    this.st.a.pa = 250 + Math.floor(Math.random() * 200);
+    this.st.h.pc = Math.floor(this.st.h.pa * (0.72 + Math.random() * 0.15));
+    this.st.a.pc = Math.floor(this.st.a.pa * (0.72 + Math.random() * 0.15));
+    this.st.h.tk = 12 + Math.floor(Math.random() * 18);
+    this.st.a.tk = 12 + Math.floor(Math.random() * 18);
+    this.st.h.ps = 35 + Math.floor(Math.random() * 45);
+    this.st.a.ps = 35 + Math.floor(Math.random() * 45);
+    this.st.h.dist = 95 + Math.random() * 25;
+    this.st.a.dist = 95 + Math.random() * 25;
+    this.st.h.kr = 6 + Math.floor(Math.random() * 12);
+    this.st.a.kr = 6 + Math.floor(Math.random() * 12);
+
+    const possH = Math.max(30, Math.min(70, 50 + (hOvr - aOvr) * 1.5 + (Math.random() - 0.5) * 16));
+    this.pt.h = possH; this.pt.a = 100 - possH;
+
+    this.gt = this.mt;
+    this.run = false;
+    this.aev(90, 'fm', 'Fim de Jogo!');
+  }
+
   tick(dt) {
     const gd = dt * this.spd;
     this.gt += gd;
@@ -482,7 +545,7 @@ export class Sim {
     if (this.gcd > 0) { this.gcd -= gd; if (this.gcd <= 0) this.rp(); }
     else {
       this.dtm -= gd;
-      if (this.dtm <= 0) { this.dtm = 0.25; this.dec(); }
+      if (this.dtm <= 0) { this.dtm = 0.15; this.dec(); }
       this.exe(gd);
     }
     this.phys(gd);
@@ -504,7 +567,7 @@ export class Sim {
       if (t !== null) {
         rcol(p, this.bl, t, dt, 0.6);
         this.bl.lt = p;
-        if (!p.hb && this.bl.v.ln() < p.ms * 1.5) {
+        if (!p.hb && this.bl.v.ln() < p.ms * 3) {
           p.hb = true;
           this.ga().forEach(o => { if (o !== p) o.hb = false; });
         }
@@ -523,9 +586,18 @@ export class Sim {
 
   dec() {
     const all = this.ga(), c = this.car();
+    if (!c) {
+      let nr = null, nd = 999;
+      all.forEach(p => { if (p.d.pos === 'GK') return; const d = p.p.dt(this.bl.p); if (d < nd) { nd = d; nr = p; } });
+      all.forEach(p => {
+        if (p === nr) p.st = 'CHASE';
+        else p.st = 'POS';
+      });
+      return;
+    }
     all.forEach(p => {
       if (p.hb) this.dA(p);
-      else if (c && c.tm !== p.tm) this.dD(p, c);
+      else if (c.tm !== p.tm) this.dD(p, c);
       else this.dP(p, c);
     });
   }
@@ -572,6 +644,7 @@ export class Sim {
         case 'PASS': this.ePa(p); break;
         case 'DRIBBLE': this.eDr(p, dt); break;
         case 'TACKLE': this.eT(p); break;
+        case 'CHASE': p.mt(this.bl.p, dt); break;
         case 'PRESS': { const c = this.car(); if (c) p.mt(c.p, dt); break; }
         case 'DEFEND': { const t = p.hp.c(); t.a(this.bl.p.sub(t).sc(0.15)); p.mt(t, dt); break; }
         case 'ATKR': {
