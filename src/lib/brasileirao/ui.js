@@ -1,4 +1,4 @@
-import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, Sim, CH, TPred } from './engine';
+import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, Sim, CH, TPred } from './engine';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -65,7 +65,39 @@ export function initBrasileirao(root) {
     setTimeout(() => { t.remove(); }, 3000);
   }
 
+  // --- Team indicators ---
+  const tind = $('tind');
+  function rTInd() {
+    const h = $('ht').value, a = $('at').value;
+    if (h === a) { tind.innerHTML = '<div style="color:var(--mt);text-align:center;font-size:11px;padding:4px">Selecione times diferentes</div>'; return; }
+    const hs = gts(h), as = gts(a);
+    const rows = [
+      ['OVR Geral', hs.ovr, as.ovr],
+      ['Ataque (ATK)', hs.atk, as.atk],
+      ['Meio (MID)', hs.mid, as.mid],
+      ['Defesa (DEF)', hs.def, as.def],
+      ['Goleiro', hs.gk, as.gk],
+      ['xG Total', hs.xG, as.xG],
+      ['xA Total', hs.xA, as.xA],
+      ['Conversão', hs.conv, as.conv],
+      ['Passe %', hs.pas, as.pas],
+      ['PPDA', hs.ppda, as.ppda]
+    ];
+    tind.innerHTML = '<div class="iti">' + rows.map(([l, hv, av]) => {
+      const hBetter = hv > av, aBetter = av > hv;
+      const fmt = v => typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(2)) : v;
+      return `<div class="ir">
+        <span class="iv ${hBetter ? 'bt' : ''}">${fmt(hv)}</span>
+        <span class="il">${l}</span>
+        <span class="iv ${aBetter ? 'bt' : ''}">${fmt(av)}</span>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
   // --- Match controls ---
+  $('ht').addEventListener('change', rTInd);
+  $('at').addEventListener('change', rTInd);
+
   $('bS').addEventListener('click', () => {
     if (SIM && SIM.run) return;
     const h = $('ht').value, a = $('at').value;
@@ -304,6 +336,7 @@ export function initBrasileirao(root) {
   popTS();
   popCS();
   popLF();
+  rTInd();
 
   // --- Cleanup ---
   return () => {

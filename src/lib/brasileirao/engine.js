@@ -294,6 +294,27 @@ export function gppda(c) {
   return Math.round(t.reduce((a, p) => a + p.press90, 0) / t.length);
 }
 
+export function gts(c) {
+  const t = gtp(c);
+  if (!t.length) return { ovr: 50, xG: 0.5, xA: 0.5, conv: 10, pas: 70, ppda: 12, def: 70, gk: 70, atk: 50, mid: 50 };
+  const atk = t.filter(p => pc(p.pos) === 'ATK');
+  const mid = t.filter(p => pc(p.pos) === 'MID');
+  const def = t.filter(p => pc(p.pos) === 'DEF');
+  const gk = t.find(p => p.pos === 'GK');
+  return {
+    ovr: gto(c),
+    xG: atk.length ? +(atk.reduce((a, p) => a + p.xG90, 0).toFixed(2)) : 0.5,
+    xA: +((atk.concat(mid)).reduce((a, p) => a + p.xA90, 0).toFixed(2)),
+    conv: atk.length ? +(atk.reduce((a, p) => a + p.conversion, 0) / atk.length).toFixed(1) : 10,
+    pas: mid.length ? +(mid.reduce((a, p) => a + p.passComp, 0) / mid.length).toFixed(1) : 70,
+    ppda: gppda(c),
+    def: def.length ? +(def.reduce((a, p) => a + p.def, 0) / def.length).toFixed(0) : 70,
+    gk: gk ? gk.ovr : 70,
+    atk: atk.length ? +(atk.reduce((a, p) => a + p.ovr, 0) / atk.length).toFixed(0) : 60,
+    mid: mid.length ? +(mid.reduce((a, p) => a + p.ovr, 0) / mid.length).toFixed(0) : 60
+  };
+}
+
 // === Geometria espacial e física ===
 class V {
   constructor(x = 0, y = 0) { this.x = x; this.y = y; }
@@ -475,63 +496,103 @@ export class Sim {
 
   setSpd(s) { this.spd = s; }
 
+  gFromXG(xg) {
+    const base = Math.floor(xg);
+    const frac = xg - base;
+    const r = (Math.random() + Math.random()) / 2;
+    return base + (r < frac ? 1 : 0);
+  }
+
   quickSim() {
     this.reset();
+    const hs = gts(this.hc), as = gts(this.ac);
     const hp = gtp(this.hc), ap = gtp(this.ac);
-    const hOvr = gto(this.hc), aOvr = gto(this.ac);
     const hFwd = hp.filter(p => p.pos !== 'GK' && pc(p.pos) !== 'DEF');
     const aFwd = ap.filter(p => p.pos !== 'GK' && pc(p.pos) !== 'DEF');
     const events = [];
-    const numShots = 10 + Math.floor(Math.random() * 14);
 
-    for (let i = 0; i < numShots; i++) {
+    // Força de ataque: xG do time * vantagem OVR * fator mando
+    const hAtk = (hs.xG * 1.15 + (hs.ovr - as.ovr) * 0.03 + 0.55);
+    const aAtk = (as.xG * 1.15 + (as.ovr - hs.ovr) * 0.03 + 0.35);
+
+    // Defesa + goleiro reduzem xG esperado
+    const hExp = Math.max(0.25, hAtk * (1 - (as.def + as.gk) / 360));
+    const aExp = Math.max(0.25, aAtk * (1 - (hs.def + hs.gk) / 360));
+
+    this.xg.h = hExp; this.xg.a = aExp;
+    this.sc2.h = this.gFromXG(hExp);
+    this.sc2.a = this.gFromXG(aExp);
+
+    // Distribui gols em minutos aleatórios com artilheiros ponderados
+    for (let i = 0; i < this.sc2.h; i++) {
       const min = 1 + Math.floor(Math.random() * 89);
-      const isHome = Math.random() < (hOvr + 1) / (hOvr + aOvr + 2);
-      const team = isHome ? 'h' : 'a';
-      const pool = isHome ? hFwd : aFwd;
-      if (!pool.length) continue;
-      const shooter = pool[Math.floor(Math.random() * pool.length)];
-      const xg = 0.03 + Math.random() * 0.45;
-      this.xg[team] += xg;
-      this.st[team].sh++;
-      if (Math.random() < xg * 1.6) {
-        this.sc2[team]++;
-        this.st[team].ot++;
-        events.push({ min, tp: 'gl', tx: `GOL ${isHome ? this.hc : this.ac}! ${shooter.name} ${min}'` });
-      } else {
-        const onTarget = Math.random() < 0.35;
-        if (onTarget) this.st[team].ot++;
-        events.push({ min, tp: 'sh', tx: `${shooter.name} chuta!${onTarget ? ' No alvo!' : ' Fora!'}${xg >= 0.25 ? ' (xG ' + xg.toFixed(2) + ')' : ''}` });
-      }
+      const sh = hFwd[Math.floor(Math.random() * hFwd.length)] || { name: 'Time' };
+      events.push({ min, tp: 'gl', tx: `GOL ${this.hc}! ${sh.name} ${min}'` });
+      this.st.h.sh++; this.st.h.ot++;
+    }
+    for (let i = 0; i < this.sc2.a; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const sh = aFwd[Math.floor(Math.random() * aFwd.length)] || { name: 'Time' };
+      events.push({ min, tp: 'gl', tx: `GOL ${this.ac}! ${sh.name} ${min}'` });
+      this.st.a.sh++; this.st.a.ot++;
     }
 
-    const numFouls = 6 + Math.floor(Math.random() * 10);
-    for (let i = 0; i < numFouls; i++) {
+    // Chutes não-gol: baseados em xG esperado (mais previsível)
+    const hShots = Math.round(hExp * 2.8 + 2);
+    const aShots = Math.round(aExp * 2.8 + 2);
+    for (let i = 0; i < hShots - this.sc2.h; i++) {
       const min = 1 + Math.floor(Math.random() * 89);
-      const isHome = Math.random() < 0.5;
-      const pool = isHome ? hp : ap;
-      const fouler = pool[Math.floor(Math.random() * pool.length)];
-      if (fouler) { this.st[isHome ? 'h' : 'a'].fl++; events.push({ min, tp: 'fl', tx: `Falta de ${fouler.name}` }); }
+      const sh = hFwd[Math.floor(Math.random() * hFwd.length)];
+      if (!sh) continue;
+      this.st.h.sh++;
+      const onTarget = Math.random() < 0.38;
+      if (onTarget) this.st.h.ot++;
+      events.push({ min, tp: 'sh', tx: `${sh.name} chuta!${onTarget ? ' No alvo!' : ' Fora!'}` });
+    }
+    for (let i = 0; i < aShots - this.sc2.a; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const sh = aFwd[Math.floor(Math.random() * aFwd.length)];
+      if (!sh) continue;
+      this.st.a.sh++;
+      const onTarget = Math.random() < 0.38;
+      if (onTarget) this.st.a.ot++;
+      events.push({ min, tp: 'sh', tx: `${sh.name} chuta!${onTarget ? ' No alvo!' : ' Fora!'}` });
+    }
+
+    // Faltas: baseadas em PPDA (pressão)
+    const hFl = Math.round(hs.ppda * 0.8 + 4);
+    const aFl = Math.round(as.ppda * 0.8 + 4);
+    for (let i = 0; i < hFl; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const f = hp[Math.floor(Math.random() * hp.length)];
+      if (f) { this.st.h.fl++; events.push({ min, tp: 'fl', tx: `Falta de ${f.name}` }); }
+    }
+    for (let i = 0; i < aFl; i++) {
+      const min = 1 + Math.floor(Math.random() * 89);
+      const f = ap[Math.floor(Math.random() * ap.length)];
+      if (f) { this.st.a.fl++; events.push({ min, tp: 'fl', tx: `Falta de ${f.name}` }); }
     }
 
     events.sort((a, b) => a.min - b.min);
     events.forEach(e => this.aev(e.min, e.tp, e.tx));
 
-    this.st.h.pa = 250 + Math.floor(Math.random() * 200);
-    this.st.a.pa = 250 + Math.floor(Math.random() * 200);
-    this.st.h.pc = Math.floor(this.st.h.pa * (0.72 + Math.random() * 0.15));
-    this.st.a.pc = Math.floor(this.st.a.pa * (0.72 + Math.random() * 0.15));
-    this.st.h.tk = 12 + Math.floor(Math.random() * 18);
-    this.st.a.tk = 12 + Math.floor(Math.random() * 18);
-    this.st.h.ps = 35 + Math.floor(Math.random() * 45);
-    this.st.a.ps = 35 + Math.floor(Math.random() * 45);
-    this.st.h.dist = 95 + Math.random() * 25;
-    this.st.a.dist = 95 + Math.random() * 25;
-    this.st.h.kr = 6 + Math.floor(Math.random() * 12);
-    this.st.a.kr = 6 + Math.floor(Math.random() * 12);
+    // Estatísticas baseadas em métricas reais do time
+    this.st.h.pa = Math.round(280 + hs.pas * 2);
+    this.st.a.pa = Math.round(280 + as.pas * 2);
+    this.st.h.pc = Math.round(this.st.h.pa * hs.pas / 100);
+    this.st.a.pc = Math.round(this.st.a.pa * as.pas / 100);
+    this.st.h.tk = Math.round(hs.ppda * 0.9 + 6);
+    this.st.a.tk = Math.round(as.ppda * 0.9 + 6);
+    this.st.h.ps = Math.round(hs.atk * 0.6 + 20);
+    this.st.a.ps = Math.round(as.atk * 0.6 + 20);
+    this.st.h.dist = +(98 + hs.mid * 0.3).toFixed(1);
+    this.st.a.dist = +(98 + as.mid * 0.3).toFixed(1);
+    this.st.h.kr = Math.round(hs.xA * 8 + 4);
+    this.st.a.kr = Math.round(as.xA * 8 + 4);
 
-    const possH = Math.max(30, Math.min(70, 50 + (hOvr - aOvr) * 1.5 + (Math.random() - 0.5) * 16));
-    this.pt.h = possH; this.pt.a = 100 - possH;
+    // Posse baseada em OVR + qualidade do meio-campo
+    const possH = Math.max(32, Math.min(68, 50 + (hs.ovr - as.ovr) * 0.8 + (hs.mid - as.mid) * 0.4 + (Math.random() - 0.5) * 8));
+    this.pt.h = Math.round(possH); this.pt.a = Math.round(100 - possH);
 
     this.gt = this.mt;
     this.run = false;
