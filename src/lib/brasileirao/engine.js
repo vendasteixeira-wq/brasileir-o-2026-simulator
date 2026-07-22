@@ -142,6 +142,62 @@ Eric Ramires|MID|Bragantino|Brasil|BRA|68|66|78|80|48|56|78|0.10|0.18|78|10.8|24
 Helinho|ATK|Bragantino|Brasil|BRA|80|72|68|84|24|54|78|0.28|0.16|74|10.8|30|42|10|5.2|0.6|0.4|22|14|1.4|3.6|36|0|0
 Eduardo Sasha|ATK|Bragantino|Brasil|BRA|66|82|58|70|22|74|78|0.48|0.08|66|9.8|16|50|6|6.0|0.4|0.2|18|14|0.6|1.2|50|0|0
 Lincoln|MID|Bragantino|Brasil|BRA|62|60|76|78|44|54|74|0.08|0.14|76|10.6|20|48|12|1.8|1.6|0.6|36|12|1.0|1.8|26|0|0
+Keiller|GK|Chapecoense|Brasil|BRA|40|10|36|14|8|66|73|0|0|54|8.8|6|26|2|0|1.6|2.2|20|0|0|0|0|68|0.30
+Miller Bolzan|DEF|Chapecoense|Brasil|BRA|68|28|52|36|78|74|74|0.01|0.01|72|10.2|14|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Demétrius|DEF|Chapecoense|Brasil|BRA|64|26|50|34|76|72|72|0.01|0.01|70|10.0|12|60|10|0.2|2.4|0.8|64|0|0|0.2|0|0|0
+João Pedro|DEF|Chapecoense|Brasil|BRA|72|30|58|44|74|70|73|0.02|0.04|72|10.6|22|56|12|0.6|2.0|0.8|52|8|1.0|2.0|22|0|0
+Hygor|MID|Chapecoense|Brasil|BRA|66|60|76|72|58|62|74|0.08|0.14|78|10.6|20|50|12|1.8|1.8|0.8|40|12|1.2|2.0|28|0|0
+Kevin|MID|Chapecoense|Brasil|BRA|62|56|72|68|56|60|73|0.06|0.10|74|10.4|16|50|12|1.4|1.6|0.8|42|10|0.8|1.4|24|0|0
+Anselmo Ramon|ATK|Chapecoense|Brasil|BRA|70|76|58|72|22|68|75|0.34|0.08|62|10.0|22|46|8|5.0|0.4|0.2|20|12|0.6|2.2|42|0|0
+Carioca|MID|Chapecoense|Brasil|BRA|68|62|74|72|56|64|74|0.08|0.12|76|10.6|20|50|12|1.6|1.8|0.8|40|12|1.0|1.8|28|0|0
+Wilson|GK|Coritiba|Brasil|BRA|42|12|40|16|10|72|74|0|0|56|9.0|8|30|2|0|2.0|2.6|24|0|0|0|0|72|0.28
+Henrique|DEF|Coritiba|Brasil|BRA|64|30|54|38|80|78|75|0.02|0.01|76|10.4|18|64|14|0.2|2.8|1.2|72|0|0|0.3|0|0|0
+Andrei|DEF|Coritiba|Brasil|BRA|66|28|52|36|78|76|74|0.01|0.01|74|10.2|16|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Nathan|DEF|Coritiba|Brasil|BRA|70|32|58|42|74|70|74|0.02|0.04|72|10.6|20|56|12|0.6|2.0|0.8|52|8|1.0|2.0|22|0|0
+Viktor|MID|Coritiba|Brasil|BRA|68|64|78|76|60|66|75|0.10|0.16|80|10.8|22|52|16|2.2|2.0|1.0|46|14|1.4|2.0|30|0|0
+Alef Manga|ATK|Coritiba|Brasil|BRA|78|80|64|82|24|64|77|0.42|0.12|68|10.4|28|44|10|6.4|0.4|0.2|22|14|1.2|3.2|48|0|0
+Bruno Gomes|MID|Coritiba|Brasil|BRA|64|58|74|70|58|62|74|0.08|0.12|76|10.6|18|50|12|1.6|1.8|0.8|42|12|1.0|1.6|26|0|0
+Mosquera|ATK|Coritiba|Colômbia|BRA|76|74|62|78|24|62|76|0.32|0.14|70|10.4|26|44|10|5.4|0.4|0.2|22|14|1.0|2.8|44|0|0
+Lucas Lopes|GK|Athletico-GO|Brasil|BRA|42|12|38|16|10|70|74|0|0|58|9.0|8|30|2|0|2.0|2.6|24|0|0|0|0|72|0.28
+Leo Pereira|DEF|Athletico-GO|Brasil|BRA|66|30|54|38|82|78|76|0.02|0.01|76|10.4|18|64|14|0.2|2.8|1.2|72|0|0|0.3|0|0|0
+Eder Ferreira|DEF|Athletico-GO|Brasil|BRA|64|28|52|34|78|76|74|0.01|0.01|74|10.2|16|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Luiz Fernando|MID|Athletico-GO|Brasil|BRA|72|66|78|76|62|66|76|0.10|0.16|80|10.8|22|52|16|2.2|2.0|1.0|46|14|1.4|2.0|30|0|0
+Willian Oliveira|MID|Athletico-GO|Brasil|BRA|66|60|74|70|58|64|75|0.08|0.12|76|10.6|20|50|12|1.6|1.8|0.8|42|12|1.0|1.8|28|0|0
+Shaylon|MID|Athletico-GO|Brasil|BRA|68|62|76|74|56|62|74|0.10|0.14|78|10.6|20|48|12|1.8|1.6|0.8|40|12|1.2|1.8|28|0|0
+Jander|ATK|Athletico-GO|Brasil|BRA|74|72|60|76|24|66|76|0.30|0.12|68|10.4|26|44|10|5.0|0.4|0.2|22|12|1.2|2.6|44|0|0
+Wellington Rato|ATK|Athletico-GO|Brasil|BRA|72|76|62|74|26|68|77|0.34|0.10|68|10.2|24|48|8|5.2|0.4|0.2|22|14|0.8|2.2|46|0|0
+Lucas Frigeri|GK|Sport|Brasil|BRA|44|12|40|16|10|72|75|0|0|60|9.2|8|32|2|0|2.0|2.8|26|0|0|0|0|72|0.28
+Flavio|DEF|Sport|Brasil|BRA|66|30|56|38|80|78|76|0.02|0.01|76|10.4|18|64|14|0.2|2.8|1.2|72|0|0|0.3|0|0|0
+Sabino|DEF|Sport|Brasil|BRA|64|28|52|36|78|76|75|0.01|0.01|74|10.2|16|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Gustavo|DEF|Sport|Brasil|BRA|72|32|60|44|74|70|75|0.02|0.04|74|10.6|22|56|12|0.6|2.0|0.8|52|8|1.0|2.0|22|0|0
+Cuca|MID|Sport|Brasil|BRA|70|64|78|76|62|66|76|0.10|0.16|80|10.8|22|52|16|2.2|2.0|1.0|46|14|1.4|2.0|30|0|0
+Neto|MID|Sport|Brasil|BRA|66|60|74|70|58|62|75|0.08|0.12|76|10.6|20|50|12|1.6|1.8|0.8|42|12|1.0|1.8|28|0|0
+Roger Martins|ATK|Sport|Brasil|BRA|78|78|62|80|24|64|77|0.38|0.12|68|10.4|28|44|10|6.0|0.4|0.2|22|14|1.2|3.0|48|0|0
+Sander|ATK|Sport|Brasil|BRA|74|72|60|76|26|66|76|0.32|0.12|68|10.4|26|44|10|5.0|0.4|0.2|22|12|1.0|2.6|44|0|0
+Brunno|GK|Ceará|Brasil|BRA|42|12|38|16|10|72|74|0|0|58|9.0|8|30|2|0|2.0|2.6|24|0|0|0|0|72|0.28
+Luiz Otávio|DEF|Ceará|Brasil|BRA|66|30|54|38|80|78|76|0.02|0.01|76|10.4|18|64|14|0.2|2.8|1.2|72|0|0|0.3|0|0|0
+Eduardo|DEF|Ceará|Brasil|BRA|64|28|52|34|78|76|74|0.01|0.01|74|10.2|16|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Richardson|MID|Ceará|Brasil|BRA|70|64|78|76|62|66|76|0.10|0.16|80|10.8|22|52|16|2.2|2.0|1.0|46|14|1.4|2.0|30|0|0
+Jajá|MID|Ceará|Brasil|BRA|66|60|74|70|58|62|75|0.08|0.12|76|10.6|20|50|12|1.6|1.8|0.8|42|12|1.0|1.8|28|0|0
+Charles|MID|Ceará|Brasil|BRA|64|58|72|68|56|60|74|0.08|0.10|74|10.4|18|48|12|1.4|1.6|0.8|40|10|0.8|1.4|26|0|0
+Erick Farias|ATK|Ceará|Brasil|BRA|76|78|62|80|24|64|77|0.38|0.12|68|10.4|28|44|10|6.0|0.4|0.2|22|14|1.2|3.0|48|0|0
+Fernando Sobral|ATK|Ceará|Brasil|BRA|72|70|58|74|24|62|75|0.28|0.10|68|10.4|26|44|10|4.8|0.4|0.2|22|12|1.0|2.4|42|0|0
+Tadeu|GK|Goiás|Brasil|BRA|42|12|38|16|10|72|74|0|0|58|9.0|8|30|2|0|2.0|2.6|24|0|0|0|0|72|0.28
+Edson|DEF|Goiás|Brasil|BRA|66|30|54|38|78|76|75|0.02|0.01|76|10.4|18|64|14|0.2|2.8|1.2|72|0|0|0.3|0|0|0
+Caio|DEF|Goiás|Brasil|BRA|64|28|52|34|76|74|74|0.01|0.01|74|10.2|16|62|12|0.2|2.6|1.0|68|0|0|0.2|0|0|0
+Dyego|DEF|Goiás|Brasil|BRA|70|32|58|42|74|70|73|0.02|0.04|72|10.6|20|56|12|0.6|2.0|0.8|52|8|1.0|2.0|22|0|0
+Lucas|MID|Goiás|Brasil|BRA|68|62|76|72|60|64|75|0.10|0.14|78|10.6|20|50|12|1.8|1.8|0.8|42|12|1.2|2.0|28|0|0
+Zé Roberto|MID|Goiás|Brasil|BRA|64|58|74|68|56|62|74|0.08|0.10|74|10.4|16|48|12|1.4|1.6|0.8|40|10|0.8|1.4|26|0|0
+Apodi|DEF|Goiás|Brasil|BRA|68|28|52|36|74|72|73|0.01|0.01|72|10.2|16|60|10|0.2|2.4|0.8|64|0|0|0.2|0|0|0
+Pedro Raul|ATK|Goiás|Brasil|BRA|70|80|58|70|22|76|77|0.44|0.08|64|9.8|16|52|6|6.2|0.4|0.2|18|14|0.6|1.4|50|0|0
+Mirassol|GK|Mirassol|Brasil|BRA|40|10|34|12|8|64|70|0|0|50|8.6|6|24|2|0|1.4|2.0|18|0|0|0|0|64|0.32
+Braga|DEF|Mirassol|Brasil|BRA|62|26|50|32|76|72|72|0.01|0.01|70|10.0|14|60|10|0.2|2.4|0.8|64|0|0|0.2|0|0|0
+Reinaldo|DEF|Mirassol|Brasil|BRA|70|32|58|42|74|70|73|0.02|0.04|72|10.6|20|56|12|0.6|2.0|0.8|52|8|1.0|2.0|22|0|0
+Maurício|MID|Mirassol|Brasil|BRA|64|58|72|68|56|60|72|0.06|0.10|74|10.4|16|48|12|1.4|1.6|0.8|40|10|0.8|1.4|24|0|0
+Léo Gaúcho|MID|Mirassol|Brasil|BRA|62|54|70|66|54|58|72|0.06|0.08|72|10.2|14|46|10|1.2|1.6|0.8|38|8|0.6|1.2|22|0|0
+Negueba|ATK|Mirassol|Brasil|BRA|78|70|60|76|22|60|74|0.30|0.12|66|10.4|26|42|8|4.8|0.4|0.2|20|12|1.0|2.6|42|0|0
+Bruno Rodrigues|ATK|Mirassol|Brasil|BRA|72|72|58|72|22|64|74|0.28|0.08|64|10.0|24|44|8|4.4|0.4|0.2|20|12|0.6|2.0|40|0|0
+Hugo Souza|GK|Atlético-GO|Brasil|BRA|44|12|40|16|10|72|75|0|0|60|9.2|8|32|2|0|2.0|2.8|26|0|0|0|0|72|0.26
 Courtois|GK|Real Madrid|Bélgica|ESP|42|12|44|18|14|82|90|0|0|68|9.8|8|40|2|0|2.4|2.8|32|0|0|0|0|78|0.24
 Bellingham|MID|Real Madrid|Inglaterra|ESP|78|84|80|86|72|80|90|0.28|0.22|84|11.4|26|56|20|3.6|2.0|1.2|50|20|2.0|3.0|40|0|0
 Vinícius Jr|ATK|Real Madrid|Brasil|ESP|97|86|80|95|36|68|92|0.62|0.30|78|11.0|38|48|14|8.4|0.8|0.4|26|24|2.4|5.8|46|0|0
@@ -175,7 +231,7 @@ export const PL = D.trim().split('\n').filter(l => l.trim()).map(l => {
   };
 });
 
-export const B20 = ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Fortaleza','Internacional','Grêmio','Bahia','Athletico-PR','Cruzeiro','Vasco','Fluminense','Bragantino','Juventude','Vitória','Criciúma','Santos','Cuiabá'];
+export const B20 = ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Fortaleza','Internacional','Grêmio','Bahia','Athletico-PR','Cruzeiro','Vasco','Fluminense','Bragantino','Juventude','Vitória','Criciúma','Santos','Cuiabá','Chapecoense','Coritiba','Athletico-GO','Sport','Ceará','Goiás','Mirassol'];
 
 export const LG = {
   BRA: { name: 'Brasileirão', icon: '🇧🇷' },
@@ -192,7 +248,7 @@ export const LG = {
 export const COMP = [
   { id: 'bra', name: 'Brasileirão Série A 2026', type: 'league', teams: B20 },
   { id: 'lib', name: 'Copa Libertadores 2026', type: 'groups', teams: ['Flamengo','Palmeiras','Botafogo','Fortaleza','Internacional','River Plate','Boca Juniors','América MX'] },
-  { id: 'cbd', name: 'Copa do Brasil 2026', type: 'knockout', teams: ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Grêmio','Internacional'] },
+  { id: 'cbd', name: 'Copa do Brasil 2026', type: 'knockout', teams: ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Grêmio','Internacional','Bahia','Athletico-PR','Cruzeiro','Sport','Ceará','Coritiba','Chapecoense','Goiás'] },
   { id: 'ucl', name: 'Champions League 2026', type: 'groups', teams: ['Real Madrid','Barcelona','Man City','Liverpool','Arsenal','Bayern','PSG','Inter Milan'] },
   { id: 'lal', name: 'La Liga 2026', type: 'league', teams: ['Real Madrid','Barcelona'] },
   { id: 'epl', name: 'Premier League 2026', type: 'league', teams: ['Man City','Liverpool','Arsenal'] },
