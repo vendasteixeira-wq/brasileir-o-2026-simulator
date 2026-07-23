@@ -217,7 +217,15 @@ Messi|ATK|Inter Miami|Argentina|USA|72|94|92|96|28|56|93|0.68|0.42|88|9.4|10|44|
 Armani|GK|River Plate|Argentina|ARG|40|10|38|16|10|68|78|0|0|58|9.0|8|30|2|0|2.0|2.8|24|0|0|0|0|70|0.30
 Solari|ATK|River Plate|Argentina|ARG|78|82|70|80|28|62|80|0.40|0.14|74|10.2|24|48|10|6.2|0.6|0.4|24|16|1.4|2.8|44|0|0
 Cavani|ATK|Boca Juniors|Uruguai|ARG|62|86|62|72|28|76|80|0.52|0.08|70|9.6|14|54|6|5.8|0.4|0.2|18|20|0.8|1.2|54|0|0
-Henry Martín|ATK|América MX|México|MEX|78|82|60|74|24|70|78|0.42|0.10|68|10.0|24|48|8|6.4|0.4|0.2|22|16|0.8|2.4|48|0|0`;
+Henry Martín|ATK|América MX|México|MEX|78|82|60|74|24|70|78|0.42|0.10|68|10.0|24|48|8|6.4|0.4|0.2|22|16|0.8|2.4|48|0|0
+Marcelo|GK|Remo|Brasil|BRA|40|10|34|12|8|64|68|0|0|52|8.8|6|24|2|0|1.6|2.2|18|0|0|0|0|64|0.30
+Auro|DEF|Remo|Brasil|BRA|68|28|50|34|76|74|74|0.01|0.01|72|10.2|16|60|12|0.2|2.6|1.0|66|0|0|0.2|0|0|0
+Aldo|DEF|Remo|Brasil|BRA|66|26|48|32|74|72|72|0.01|0.01|70|10.0|14|58|10|0.2|2.4|0.8|62|0|0|0.2|0|0|0
+Eder|DEF|Remo|Brasil|BRA|64|24|46|30|72|70|70|0.01|0.01|68|9.8|12|56|10|0.2|2.2|0.8|58|0|0|0.2|0|0|0
+Andrey|MID|Remo|Brasil|BRA|66|58|74|70|58|64|74|0.08|0.12|76|10.6|18|50|12|1.6|1.8|0.8|40|10|0.8|1.4|26|0|0
+Wescley|MID|Remo|Brasil|BRA|64|56|72|68|56|62|72|0.06|0.10|74|10.4|16|48|10|1.4|1.6|0.8|38|10|0.6|1.2|24|0|0
+Anderson Lopes|ATK|Remo|Brasil|BRA|76|74|62|78|22|64|76|0.30|0.12|68|10.4|26|44|10|5.0|0.4|0.2|22|14|1.2|2.6|44|0|0
+Josuel|ATK|Remo|Brasil|BRA|74|72|60|76|24|62|74|0.28|0.10|66|10.2|24|44|8|4.8|0.4|0.2|20|12|1.0|2.4|42|0|0`;
 
 export const PL = D.trim().split('\n').filter(l => l.trim()).map(l => {
   const d = l.split('|');
@@ -231,7 +239,7 @@ export const PL = D.trim().split('\n').filter(l => l.trim()).map(l => {
   };
 });
 
-export const B20 = ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Fortaleza','Internacional','Grêmio','Bahia','Athletico-PR','Cruzeiro','Vasco','Fluminense','Bragantino','Juventude','Vitória','Criciúma','Santos','Cuiabá','Chapecoense','Coritiba','Athletico-GO','Sport','Ceará','Goiás','Mirassol'];
+export const B20 = ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Fortaleza','Internacional','Grêmio','Bahia','Athletico-PR','Cruzeiro','Vasco','Fluminense','Bragantino','Juventude','Vitória','Criciúma','Santos','Cuiabá','Chapecoense','Coritiba','Athletico-GO','Sport','Ceará','Goiás','Mirassol','Remo'];
 
 export const LG = {
   BRA: { name: 'Brasileirão', icon: '🇧🇷' },
