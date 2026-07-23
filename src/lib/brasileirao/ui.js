@@ -1,4 +1,6 @@
 import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, Sim, CH, TPred } from './engine';
+import { monteCarlo } from './predict';
+import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -65,6 +67,58 @@ export function initBrasileirao(root) {
     setTimeout(() => { t.remove(); }, 3000);
   }
 
+  // --- Monte Carlo probability panel ---
+  function rMC() {
+    const h = $('ht').value, a = $('at').value;
+    if (h === a) { ppnl.innerHTML = '<div style="color:var(--mt);text-align:center;font-size:10px;padding:8px">Selecione times diferentes</div>'; return; }
+    const mc = monteCarlo(h, a, 3000);
+    const bar = (pct, col) => `<div class="mcb"><div class="mcf" style="width:${pct}%;background:${col}"></div></div>`;
+    const wColor = mc.win > 50 ? 'var(--ac)' : 'var(--mt)';
+    const lColor = mc.loss > 50 ? 'var(--dn)' : 'var(--mt)';
+    ppnl.innerHTML = `
+      <div class="mce">
+        <div class="mcr"><span class="mcl">VIT ${h}</span><span class="mcv" style="color:${wColor}">${mc.win}%</span></div>
+        ${bar(mc.win, 'var(--ac)')}
+        <div class="mcr"><span class="mcl">EMPATE</span><span class="mcv" style="color:var(--ac2)">${mc.draw}%</span></div>
+        ${bar(mc.draw, 'var(--ac2)')}
+        <div class="mcr"><span class="mcl">VIT ${a}</span><span class="mcv" style="color:${lColor}">${mc.loss}%</span></div>
+        ${bar(mc.loss, 'var(--dn)')}
+      </div>
+      <div class="mcx"><span>xG ${mc.xgH}</span><span>Elo ${mc.eloH}</span><span>${mc.eloA} Elo</span><span>${mc.xgA} xG</span></div>
+      <div class="mct">${mc.top.map(s => `<div class="mcs"><span class="mcsn">${s.score}</span><span class="mcsp">${s.pct.toFixed(1)}%</span></div>`).join('')}</div>
+      <div style="color:var(--mt);font-size:8px;text-align:center;margin-top:4px">Monte Carlo · Dixon-Coles · 3000x</div>`;
+  }
+
+  // --- Intel pre-jogo via Gemini (web search) ---
+  async function rIntel() {
+    const h = $('ht').value, a = $('at').value;
+    if (h === a) { toast('Selecione times diferentes!', 'wr'); return; }
+    const ipnl = $('ipnl');
+    ipnl.innerHTML = '<div class="ild">Buscando escalações, lesões e forma recente...</div>';
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Você é um analista de futebol. Para a partida ${h} (mandante) vs ${a} (visitante) no Brasileirão 2026, faça uma análise pré-jogo BREVE baseada em dados reais e atuais. Retorne em JSON: { "esc_h": "escalação provável do ${h} (titulares)", "esc_a": "escalação provável do ${a}", "desfalques_h": "lesões/suspensões do ${h}", "desfalques_a": "lesões/suspensões do ${a}", "forma_h": "últimos 5 jogos do ${h}", "forma_a": "últimos 5 jogos do ${a}", "palpite": "palpite de placar e justificativa curta" }. Seja conciso.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            esc_h: { type: 'string' }, esc_a: { type: 'string' },
+            desfalques_h: { type: 'string' }, desfalques_a: { type: 'string' },
+            forma_h: { type: 'string' }, forma_a: { type: 'string' },
+            palpite: { type: 'string' }
+          }
+        }
+      });
+      const d = typeof res === 'string' ? JSON.parse(res) : res;
+      ipnl.innerHTML = `
+        <div class="ilr"><div class="ilh">${h}</div><div class="ilb"><b>Escal:</b> ${d.esc_h || '-'}</div><div class="ilb"><b>Desfalques:</b> ${d.desfalques_h || '-'}</div><div class="ilb"><b>Forma:</b> ${d.forma_h || '-'}</div></div>
+        <div class="ilr"><div class="ilh">${a}</div><div class="ilb"><b>Escal:</b> ${d.esc_a || '-'}</div><div class="ilb"><b>Desfalques:</b> ${d.desfalques_a || '-'}</div><div class="ilb"><b>Forma:</b> ${d.forma_a || '-'}</div></div>
+        <div class="ilp">${d.palpite || '-'}</div>`;
+    } catch (e) {
+      ipnl.innerHTML = '<div class="ild" style="color:var(--dn)">Falha ao buscar intel. Tente novamente.</div>';
+    }
+  }
+
   // --- Team indicators ---
   const tind = $('tind');
   function rTInd() {
@@ -95,8 +149,11 @@ export function initBrasileirao(root) {
   }
 
   // --- Match controls ---
-  $('ht').addEventListener('change', rTInd);
-  $('at').addEventListener('change', rTInd);
+  $('ht').addEventListener('change', () => { rTInd(); rMC(); });
+  $('at').addEventListener('change', () => { rTInd(); rMC(); });
+
+  $('bI').addEventListener('click', rIntel);
+  $('bInt').addEventListener('click', rIntel);
 
   $('bS').addEventListener('click', () => {
     if (SIM && SIM.run) return;
@@ -122,7 +179,8 @@ export function initBrasileirao(root) {
     hxg.textContent = 'xG ' + SIM.xg.h.toFixed(2) + ' - ' + SIM.xg.a.toFixed(2);
     mst.innerHTML = SIM.gSH();
     elog.innerHTML = SIM.gEH();
-    ppnl.innerHTML = '<div style="grid-column:1/-1;color:var(--ac);text-align:center;padding:10px;font-size:11px;font-weight:600">Partida simulada instantaneamente</div>';
+    ppnl.innerHTML = '';
+    rMC();
     const w = SIM.sc2.h > SIM.sc2.a ? h : SIM.sc2.a > SIM.sc2.h ? a : 'Empate';
     toast(w === 'Empate' ? 'Empate: ' + SIM.sc2.h + 'x' + SIM.sc2.a : w + ' venceu ' + SIM.sc2.h + 'x' + SIM.sc2.a, 'ok');
   });
@@ -337,6 +395,7 @@ export function initBrasileirao(root) {
   popCS();
   popLF();
   rTInd();
+  rMC();
 
   // --- Cleanup ---
   return () => {
