@@ -1,5 +1,6 @@
 import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, Sim, CH, TPred } from './engine';
 import { monteCarlo } from './predict';
+import { gerarSugestoes } from './loteria';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -46,6 +47,7 @@ export function initBrasileirao(root) {
     $('t-' + b.dataset.t).classList.add('on');
     if (b.dataset.t === 'squad') rSq();
     if (b.dataset.t === 'db') rDB();
+    if (b.dataset.t === 'lot') rLot();
   }));
 
   // --- Canvas ---
@@ -389,6 +391,28 @@ export function initBrasileirao(root) {
   $('dbl').addEventListener('change', rDB);
   $('dbp').addEventListener('change', rDB);
   $('dbs2').addEventListener('change', rDB);
+
+  // --- Loteria (Mega Sena & Quina) ---
+  function rLot() {
+    const res = gerarSugestoes();
+    const ball = (n, big) => `<span class="lb${big ? ' bg' : ''}">${n}</span>`;
+    const setHTML = (s, big) => s.nums.map(n => ball(n, big)).join('') + `<span class="lq" style="color:${rc(s.q)}">${s.q}%</span>`;
+    const mp = res.prob.mega, qp = res.prob.quina;
+    const fmtP = p => p < 1e-4 ? (p * 1e6).toFixed(2) + ' ppm' : (p * 100).toFixed(4) + '%';
+    $('lcon').innerHTML = `
+      <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Sugestoes para ${res.date}</div>
+      <div class="ldisc"><i class="fas fa-info-circle"></i> Geracao por seed diaria + analise combinatoria exata + balanceamento estatistico (soma, par/impar, decadas). Loteria e aleatoria — sugestoes nao garantem premio.</div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60)</div>
+      <div class="lrow"><span class="lrt">6 pontos (Sena)</span><div class="lballs">${setHTML(res.mega.sena, true)}</div><span class="lpr">1 em ${mp.total.toLocaleString('pt-BR')}</span></div>
+      <div class="lrow"><span class="lrt">5 pontos (Quina)</span><div class="lballs">${setHTML(res.mega.quina)}</div><span class="lpr">${fmtP(mp.quina)}</span></div>
+      <div class="lrow"><span class="lrt">4 pontos (Quadra)</span><div class="lballs">${setHTML(res.mega.quadra)}</div><span class="lpr">${fmtP(mp.quadra)}</span></div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80)</div>
+      <div class="lrow"><span class="lrt">5 pontos (Quina)</span><div class="lballs">${setHTML(res.quina.quina, true)}</div><span class="lpr">1 em ${qp.total.toLocaleString('pt-BR')}</span></div>
+      <div class="lrow"><span class="lrt">4 pontos (Quadra)</span><div class="lballs">${setHTML(res.quina.quadra)}</div><span class="lpr">${fmtP(qp.quadra)}</span></div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
+      <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
+  }
+  $('bLot').addEventListener('click', rLot);
 
   // --- Init ---
   popTS();
