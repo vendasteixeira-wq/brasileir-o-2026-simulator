@@ -496,11 +496,13 @@ export class Sim {
 
   setSpd(s) { this.spd = s; }
 
-  gFromXG(xg) {
-    const base = Math.floor(xg);
-    const frac = xg - base;
-    const r = (Math.random() + Math.random()) / 2;
-    return base + (r < frac ? 1 : 0);
+  // Distribuição de Poisson - modelo padrão do futebol, permite goleadas (3, 4, 5+ gols)
+  poisson(lambda) {
+    if (lambda <= 0) return 0;
+    const L = Math.exp(-lambda);
+    let k = 0, p = 1;
+    do { k++; p *= Math.random(); } while (p > L);
+    return k - 1;
   }
 
   quickSim() {
@@ -511,17 +513,20 @@ export class Sim {
     const aFwd = ap.filter(p => p.pos !== 'GK' && pc(p.pos) !== 'DEF');
     const events = [];
 
-    // Força de ataque: xG do time * vantagem OVR * fator mando
-    const hAtk = (hs.xG * 1.15 + (hs.ovr - as.ovr) * 0.03 + 0.55);
-    const aAtk = (as.xG * 1.15 + (as.ovr - hs.ovr) * 0.03 + 0.35);
+    // Diferença de elenco (OVR geral) - times superiores geram muito mais chances
+    const ovrDiff = hs.ovr - as.ovr;
 
-    // Defesa + goleiro reduzem xG esperado
-    const hExp = Math.max(0.25, hAtk * (1 - (as.def + as.gk) / 360));
-    const aExp = Math.max(0.25, aAtk * (1 - (hs.def + hs.gk) / 360));
+    // Força de ataque: xG real do time + bonus por superioridade de elenco + mando de campo
+    const hAtk = hs.xG * 1.2 + ovrDiff * 0.045 + 0.6;
+    const aAtk = as.xG * 1.2 - ovrDiff * 0.045 + 0.2;
+
+    // Defesa + goleiro adversarios reduzem gols esperados (escala relativa a 70)
+    const hExp = Math.max(0.15, hAtk * (1 - (as.def - 50) / 200) * (1 - (as.gk - 50) / 400));
+    const aExp = Math.max(0.15, aAtk * (1 - (hs.def - 50) / 200) * (1 - (hs.gk - 50) / 400));
 
     this.xg.h = hExp; this.xg.a = aExp;
-    this.sc2.h = this.gFromXG(hExp);
-    this.sc2.a = this.gFromXG(aExp);
+    this.sc2.h = this.poisson(hExp);
+    this.sc2.a = this.poisson(aExp);
 
     // Distribui gols em minutos aleatórios com artilheiros ponderados
     for (let i = 0; i < this.sc2.h; i++) {
@@ -975,13 +980,11 @@ export class TPred {
   }
 
   sm(t1, t2) {
-    const df = (t1.ovr - t2.ovr) * 0.015 + (t1.xG - t2.xG) * 0.3 + (t1.conv - t2.conv) * 0.1;
-    const p = 0.5 + df;
-    const r = Math.random();
-    let g1, g2;
-    if (r < p * 0.4) { g1 = Math.floor(Math.random() * 3) + 1; g2 = Math.floor(Math.random() * Math.max(1, g1)); }
-    else if (r < (p * 0.4 + 0.3)) { g1 = Math.floor(Math.random() * 2); g2 = g1; }
-    else { g2 = Math.floor(Math.random() * 3) + 1; g1 = Math.floor(Math.random() * Math.max(1, g2)); }
+    const ovrDiff = t1.ovr - t2.ovr;
+    const e1 = Math.max(0.15, (t1.xG * 1.2 + ovrDiff * 0.045 + 0.5) * (1 - (t2.ovr - 50) / 250));
+    const e2 = Math.max(0.15, (t2.xG * 1.2 - ovrDiff * 0.045 + 0.2) * (1 - (t1.ovr - 50) / 250));
+    const L = Math.exp, g1 = (() => { let k=0,p=1; do{k++;p*=Math.random();}while(p>L(-e1));return k-1; })();
+    const g2 = (() => { let k=0,p=1; do{k++;p*=Math.random();}while(p>L(-e2));return k-1; })();
     return { g1, g2 };
   }
 
