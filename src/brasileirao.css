@@ -98,3 +98,8 @@ nav{display:flex;gap:3px;margin-bottom:8px;overflow-x:auto}nav button{flex-shrin
 .lq{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;padding:2px 6px;background:var(--cd2);border-radius:4px;margin-left:4px}
 .lpr{font-family:'Rajdhani',sans-serif;font-size:10px;color:var(--mt);min-width:95px;text-align:right}
 .lpt{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:10px;color:var(--mt);line-height:1.7}.lpt b{color:var(--ac2);font-family:'Rajdhani',sans-serif}
+.ifl{display:inline-block;cursor:pointer}.ifl span{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(0,230,118,.1);border:1px solid var(--ac);color:var(--ac);border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;transition:.2s}.ifl:hover span{background:rgba(0,230,118,.18)}
+.igl{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:5px}
+.igi{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--cd2);border:1px solid var(--bd);border-radius:5px;font-size:10px}
+.igi .ign{font-weight:700;color:var(--tx)}.igi .igd{color:var(--mt);font-size:9px}
+.lpnl code{background:var(--cd2);padding:1px 4px;border-radius:3px;color:var(--ob);font-size:9px}

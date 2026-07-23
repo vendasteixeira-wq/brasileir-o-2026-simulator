@@ -294,25 +294,34 @@ export function gppda(c) {
   return Math.round(t.reduce((a, p) => a + p.press90, 0) / t.length);
 }
 
+// Override de estatisticas reais importadas (Google Sheets via CSV)
+export let STATS_OVERRIDE = {};
+export function setStatsOverride(m) { STATS_OVERRIDE = m || {}; }
+export function getStatsOverride() { return STATS_OVERRIDE; }
+export function clearStatsOverride() { STATS_OVERRIDE = {}; }
+
 export function gts(c) {
   const t = gtp(c);
-  if (!t.length) return { ovr: 50, xG: 0.5, xA: 0.5, conv: 10, pas: 70, ppda: 12, def: 70, gk: 70, atk: 50, mid: 50 };
-  const atk = t.filter(p => pc(p.pos) === 'ATK');
-  const mid = t.filter(p => pc(p.pos) === 'MID');
-  const def = t.filter(p => pc(p.pos) === 'DEF');
-  const gk = t.find(p => p.pos === 'GK');
-  return {
-    ovr: gto(c),
-    xG: atk.length ? +(atk.reduce((a, p) => a + p.xG90, 0).toFixed(2)) : 0.5,
-    xA: +((atk.concat(mid)).reduce((a, p) => a + p.xA90, 0).toFixed(2)),
-    conv: atk.length ? +(atk.reduce((a, p) => a + p.conversion, 0) / atk.length).toFixed(1) : 10,
-    pas: mid.length ? +(mid.reduce((a, p) => a + p.passComp, 0) / mid.length).toFixed(1) : 70,
-    ppda: gppda(c),
-    def: def.length ? +(def.reduce((a, p) => a + p.def, 0) / def.length).toFixed(0) : 70,
-    gk: gk ? gk.ovr : 70,
-    atk: atk.length ? +(atk.reduce((a, p) => a + p.ovr, 0) / atk.length).toFixed(0) : 60,
-    mid: mid.length ? +(mid.reduce((a, p) => a + p.ovr, 0) / mid.length).toFixed(0) : 60
-  };
+  const base = !t.length ? { ovr: 50, xG: 0.5, xA: 0.5, conv: 10, pas: 70, ppda: 12, def: 70, gk: 70, atk: 50, mid: 50 } : (() => {
+    const atk = t.filter(p => pc(p.pos) === 'ATK');
+    const mid = t.filter(p => pc(p.pos) === 'MID');
+    const def = t.filter(p => pc(p.pos) === 'DEF');
+    const gk = t.find(p => p.pos === 'GK');
+    return {
+      ovr: gto(c),
+      xG: atk.length ? +(atk.reduce((a, p) => a + p.xG90, 0).toFixed(2)) : 0.5,
+      xA: +((atk.concat(mid)).reduce((a, p) => a + p.xA90, 0).toFixed(2)),
+      conv: atk.length ? +(atk.reduce((a, p) => a + p.conversion, 0) / atk.length).toFixed(1) : 10,
+      pas: mid.length ? +(mid.reduce((a, p) => a + p.passComp, 0) / mid.length).toFixed(1) : 70,
+      ppda: gppda(c),
+      def: def.length ? +(def.reduce((a, p) => a + p.def, 0) / def.length).toFixed(0) : 70,
+      gk: gk ? gk.ovr : 70,
+      atk: atk.length ? +(atk.reduce((a, p) => a + p.ovr, 0) / atk.length).toFixed(0) : 60,
+      mid: mid.length ? +(mid.reduce((a, p) => a + p.ovr, 0) / mid.length).toFixed(0) : 60
+    };
+  })();
+  if (STATS_OVERRIDE[c]) return { ...base, ...STATS_OVERRIDE[c] };
+  return base;
 }
 
 // === Geometria espacial e física ===

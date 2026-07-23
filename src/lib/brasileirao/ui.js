@@ -1,6 +1,7 @@
-import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, Sim, CH, TPred } from './engine';
+import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, getStatsOverride, Sim, CH, TPred } from './engine';
 import { monteCarlo } from './predict';
 import { gerarSugestoes } from './loteria';
+import { parseCSV, applyImport, clearImport } from './statsImport';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -48,6 +49,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'squad') rSq();
     if (b.dataset.t === 'db') rDB();
     if (b.dataset.t === 'lot') rLot();
+    if (b.dataset.t === 'imp') rImp();
   }));
 
   // --- Canvas ---
@@ -413,6 +415,33 @@ export function initBrasileirao(root) {
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
   }
   $('bLot').addEventListener('click', rLot);
+
+  // --- Importar estatisticas reais (CSV do Google Sheets) ---
+  function rImp() {
+    const imp = getStatsOverride();
+    const teams = Object.keys(imp);
+    const list = $('impList');
+    if (!teams.length) {
+      list.innerHTML = '<div style="color:var(--mt);font-size:11px;text-align:center;padding:12px">Nenhuma importacao ainda. Selecione um CSV exportado do Google Sheets.</div>';
+      return;
+    }
+    list.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:11px;color:var(--ac)"><i class="fas fa-check-circle"></i> ${teams.length} times com dados reais — previsoes recalculadas</span><button id="bImpClear" style="padding:4px 10px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:5px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:10px"><i class="fas fa-trash"></i> Limpar</button></div><div class="igl">${teams.map(t => `<div class="igi"><span class="ign">${t}</span><span class="igd">${imp[t].injuries != null ? 'Lesoes: ' + imp[t].injuries : ''}${imp[t].xG != null ? ' · xG ' + imp[t].xG : ''}</span></div>`).join('')}</div>`;
+    $('bImpClear').addEventListener('click', () => { clearImport(); rImp(); rMC(); rTInd(); toast('Importacao limpa — previsoes voltaram ao baseline', 'wr'); });
+  }
+  $('fImp').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const rows = parseCSV(text);
+      const teams = applyImport(rows);
+      rImp(); rMC(); rTInd();
+      toast(teams.length + ' times importados — previsoes atualizadas', 'ok');
+    } catch (err) {
+      toast('Erro na importacao: ' + err.message, 'wr');
+    }
+    e.target.value = '';
+  });
 
   // --- Init ---
   popTS();

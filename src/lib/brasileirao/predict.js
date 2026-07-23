@@ -15,11 +15,15 @@ export function eloWinProb(ra, rb) {
 export function teamStrength(team) {
   const s = gts(team);
   const ovr = s.ovr;
+  // Lesoes importadas reduzem forca (cada lesao ~4% no ataque, 2% cedidos; cap 30%/20%)
+  const inj = s.injuries || 0;
+  const injAtk = 1 - Math.min(0.3, inj * 0.04);
+  const injDef = 1 + Math.min(0.2, inj * 0.02);
   // Ataque: xG real + bonus por qualidade do elenco
-  const atk = Math.max(0.2, s.xG * 1.15 + (ovr - 70) * 0.035 + 0.5);
+  const atk = Math.max(0.2, (s.xG * 1.15 + (ovr - 70) * 0.035 + 0.5) * injAtk);
   // Defesa: DEF + GK reduzem gols cedidos (maior def = menor taxa)
-  const concede = Math.max(0.25, (1 - (s.def - 40) / 120) * (1 - (s.gk - 40) / 200) * 1.4);
-  return { atk, def: concede, elo: eloRating(ovr), ovr };
+  const concede = Math.max(0.25, (1 - (s.def - 40) / 120) * (1 - (s.gk - 40) / 200) * 1.4 * injDef);
+  return { atk, def: concede, elo: eloRating(ovr), ovr, injuries: inj };
 }
 
 // === Dixon-Coles: Poisson Bivariado com correcao de baixo placar ===
