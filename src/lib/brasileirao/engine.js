@@ -239,7 +239,7 @@ export const PL = D.trim().split('\n').filter(l => l.trim()).map(l => {
   };
 });
 
-export const B20 = ['Flamengo','Palmeiras','Botafogo','São Paulo','Corinthians','Atlético-MG','Fortaleza','Internacional','Grêmio','Bahia','Athletico-PR','Cruzeiro','Vasco','Fluminense','Bragantino','Juventude','Vitória','Criciúma','Santos','Cuiabá','Chapecoense','Coritiba','Athletico-GO','Sport','Ceará','Goiás','Mirassol','Remo'];
+export const B20 = ['Palmeiras','Flamengo','Athletico-PR','Fluminense','Bragantino','Bahia','Corinthians','Cruzeiro','Botafogo','Coritiba','Vitória','São Paulo','Atlético-MG','Internacional','Santos','Grêmio','Vasco','Mirassol','Remo','Chapecoense'];
 
 export const LG = {
   BRA: { name: 'Brasileirão', icon: '🇧🇷' },
@@ -303,10 +303,11 @@ export function gppda(c) {
 }
 
 // Override de estatisticas reais importadas (Google Sheets via CSV)
-export let STATS_OVERRIDE = {};
+import { buildRealOverride } from './realStats';
+export let STATS_OVERRIDE = buildRealOverride();
 export function setStatsOverride(m) { STATS_OVERRIDE = m || {}; }
 export function getStatsOverride() { return STATS_OVERRIDE; }
-export function clearStatsOverride() { STATS_OVERRIDE = {}; }
+export function clearStatsOverride() { STATS_OVERRIDE = buildRealOverride(); }
 
 export function gts(c) {
   const t = gtp(c);
@@ -989,9 +990,8 @@ export class TPred {
   constructor(id) {
     this.cp = COMP.find(c => c.id === id);
     this.tms = this.cp.teams.map(t => {
-      const tp = gtp(t);
-      const av = (k) => tp.length ? Math.round(tp.reduce((a, p) => a + p[k], 0) / tp.length * 10) / 10 : 0;
-      return { name: t, ovr: gto(t), pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pl: 0, xG: av('xG90'), xA: av('xA90'), ppda: gppda(t), pas: av('passComp'), conv: av('conversion') };
+      const s = gts(t);
+      return { name: t, ovr: s.ovr, pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pl: 0, xG: s.xG, xA: s.xA, ppda: s.ppda, pas: s.pas, conv: s.conv, def: s.def, gk: s.gk };
     });
     this.grps = []; this.ko = []; this.win = null;
   }
