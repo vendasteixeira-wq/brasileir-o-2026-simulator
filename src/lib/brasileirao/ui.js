@@ -400,19 +400,21 @@ export function initBrasileirao(root) {
   function rLot() {
     const res = gerarSugestoes();
     const ball = (n, big) => `<span class="lb${big ? ' bg' : ''}">${n}</span>`;
-    const setHTML = (s, big) => s.nums.map(n => ball(n, big)).join('') + `<span class="lq" style="color:${rc(s.q)}">${s.q}%</span>`;
+    const setHTML = (g, big) => g.nums.map(n => ball(n, big)).join('') + `<span class="lq" style="color:${rc(g.q)}">${g.q}%</span>`;
+    const labels = ['Jogo 1 (melhor chance)', 'Jogo 2', 'Jogo 3', 'Jogo Bonus'];
     const mp = res.prob.mega, qp = res.prob.quina;
     const fmtP = p => p < 1e-4 ? (p * 1e6).toFixed(2) + ' ppm' : (p * 100).toFixed(4) + '%';
+    const megaRows = res.mega.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
+    const quinaRows = res.quina.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
     $('lcon').innerHTML = `
       <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Sugestoes para ${res.date}</div>
-      <div class="ldisc"><i class="fas fa-info-circle"></i> Geracao por seed diaria + analise combinatoria exata + balanceamento estatistico (soma, par/impar, decadas). Loteria e aleatoria — sugestoes nao garantem premio.</div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60)</div>
-      <div class="lrow"><span class="lrt">6 pontos (Sena)</span><div class="lballs">${setHTML(res.mega.sena, true)}</div><span class="lpr">1 em ${mp.total.toLocaleString('pt-BR')}</span></div>
-      <div class="lrow"><span class="lrt">5 pontos (Quina)</span><div class="lballs">${setHTML(res.mega.quina)}</div><span class="lpr">${fmtP(mp.quina)}</span></div>
-      <div class="lrow"><span class="lrt">4 pontos (Quadra)</span><div class="lballs">${setHTML(res.mega.quadra)}</div><span class="lpr">${fmtP(mp.quadra)}</span></div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80)</div>
-      <div class="lrow"><span class="lrt">5 pontos (Quina)</span><div class="lballs">${setHTML(res.quina.quina, true)}</div><span class="lpr">1 em ${qp.total.toLocaleString('pt-BR')}</span></div>
-      <div class="lrow"><span class="lrt">4 pontos (Quadra)</span><div class="lballs">${setHTML(res.quina.quadra)}</div><span class="lpr">${fmtP(qp.quadra)}</span></div></div>
+      <div class="ldisc"><i class="fas fa-info-circle"></i> Seed diaria + combinatoria exata + balanceamento (soma, par/impar, decadas). 3 jogos + 1 bonus, ordenados por maior chance de acerto. Loteria e aleatoria — nao garante premio.</div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60) — 4 jogos</div>
+      ${megaRows}
+      <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Sena: 1 em ${mp.total.toLocaleString('pt-BR')} · Quina: ${fmtP(mp.quina)} · Quadra: ${fmtP(mp.quadra)}</div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80) — 4 jogos</div>
+      ${quinaRows}
+      <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Quina: 1 em ${qp.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(qp.quadra)} · Terno: ${fmtP(qp.terno)}</div></div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
   }

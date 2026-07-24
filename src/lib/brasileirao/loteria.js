@@ -90,19 +90,28 @@ export function quality(nums, range) {
   return Math.max(0, Math.round(s));
 }
 
+// Gera varios candidatos e devolve os 'nPick' melhores por score de balanceamento
+function genTopGames(range, count, baseSeed, nCandidates, nPick) {
+  const strategies = ['hot', 'balanced', 'spread'];
+  const games = [];
+  const seen = new Set();
+  for (let i = 0; i < nCandidates; i++) {
+    const nums = genSet(range, count, baseSeed + i * 31, strategies[i % strategies.length]);
+    const key = nums.join(',');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    games.push({ nums, q: quality(nums, range) });
+  }
+  games.sort((a, b) => b.q - a.q);
+  return games.slice(0, nPick);
+}
+
 export function gerarSugestoes() {
   const seed = dateSeed();
   return {
     date: new Date().toLocaleDateString('pt-BR'),
-    mega: {
-      sena: { nums: genSet(60, 6, seed, 'hot'), q: quality(genSet(60, 6, seed, 'hot'), 60) },
-      quina: { nums: genSet(60, 6, seed + 7, 'balanced'), q: quality(genSet(60, 6, seed + 7, 'balanced'), 60) },
-      quadra: { nums: genSet(60, 6, seed + 13, 'spread'), q: quality(genSet(60, 6, seed + 13, 'spread'), 60) }
-    },
-    quina: {
-      quina: { nums: genSet(80, 5, seed + 19, 'hot'), q: quality(genSet(80, 5, seed + 19, 'hot'), 80) },
-      quadra: { nums: genSet(80, 5, seed + 23, 'spread'), q: quality(genSet(80, 5, seed + 23, 'spread'), 80) }
-    },
+    mega: { games: genTopGames(60, 6, seed, 90, 4) },
+    quina: { games: genTopGames(80, 5, seed + 100, 90, 4) },
     prob: { mega: megaProb(), quina: quinaProb() }
   };
 }
