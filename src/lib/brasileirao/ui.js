@@ -1,6 +1,7 @@
-import { PL, LG, COMP, FMS, pc, pco, rc, gto, gppda, gts, getStatsOverride, Sim, CH, TPred } from './engine';
+import { PL, LG, COMP, FMS, B20, pc, pco, rc, gto, gppda, gts, getStatsOverride, Sim, CH, TPred } from './engine';
 import { monteCarlo } from './predict';
 import { gerarSugestoes } from './loteria';
+import { roundRobin, predictMatches } from './rodada';
 import { parseCSV, applyImport, clearImport } from './statsImport';
 import { base44 } from '@/api/base44Client';
 
@@ -50,6 +51,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'db') rDB();
     if (b.dataset.t === 'lot') rLot();
     if (b.dataset.t === 'imp') rImp();
+    if (b.dataset.t === 'rod') rRod();
   }));
 
   // --- Canvas ---
@@ -415,6 +417,39 @@ export function initBrasileirao(root) {
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
   }
   $('bLot').addEventListener('click', rLot);
+
+  // --- Previsoes por rodada (batch Monte Carlo) ---
+  let rodIdx = 0;
+  let rodRounds = [];
+  function rRod() {
+    const con = $('rodCon');
+    if (!rodRounds.length) {
+      con.innerHTML = '<div style="color:var(--mt);text-align:center;font-size:11px;padding:14px">Clique em "Gerar 2 Rodadas" para prever 20 jogos de uma vez (round-robin dos 20 times).</div>';
+      return;
+    }
+    con.innerHTML = rodRounds.map(r => `
+      <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Rodada ${r.idx} — ${r.predictions.length} jogos</div>
+      ${r.predictions.map(p => `
+        <div class="rdm">
+          <div class="rdmt"><span class="rdmh">${p.h}</span><span class="rdms">${p.score}</span><span class="rdma">${p.a}</span></div>
+          <div class="rdmb"><div class="rdmf hh" style="width:${p.win}%"></div><div class="rdmf dd" style="width:${p.draw}%"></div><div class="rdmf aa" style="width:${p.loss}%"></div></div>
+          <div class="rdmp"><span style="color:var(--hm)">${p.win}%</span><span style="color:var(--ac2)">${p.draw}%</span><span style="color:var(--aw)">${p.loss}%</span><span class="rdxg">xG ${p.xgH}-${p.xgA}</span><span class="rdfav">Fav: <b style="color:var(--ac)">${p.fav}</b></span></div>
+        </div>`).join('')}
+      </div>`).join('');
+  }
+  $('bRod').addEventListener('click', () => {
+    const rr = roundRobin(B20);
+    rodRounds = []; rodIdx = 0;
+    for (let i = 0; i < 2; i++) { rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(rr[(rodIdx - 1) % rr.length]) }); }
+    rRod();
+    toast('2 rodadas geradas — 20 previsoes', 'ok');
+  });
+  $('bRodAdd').addEventListener('click', () => {
+    const rr = roundRobin(B20);
+    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(rr[(rodIdx - 1) % rr.length]) });
+    rRod();
+    toast('Rodada ' + rodIdx + ' adicionada', 'ok');
+  });
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---
   function rImp() {

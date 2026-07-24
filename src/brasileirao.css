@@ -103,3 +103,13 @@ nav{display:flex;gap:3px;margin-bottom:8px;overflow-x:auto}nav button{flex-shrin
 .igi{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--cd2);border:1px solid var(--bd);border-radius:5px;font-size:10px}
 .igi .ign{font-weight:700;color:var(--tx)}.igi .igd{color:var(--mt);font-size:9px}
 .lpnl code{background:var(--cd2);padding:1px 4px;border-radius:3px;color:var(--ob);font-size:9px}
+.rdm{background:var(--cd2);border:1px solid var(--bd);border-radius:6px;padding:7px 8px;margin-bottom:5px}
+.rdmt{display:flex;justify-content:space-between;align-items:center;gap:6px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px;margin-bottom:4px}
+.rdmh{color:var(--hm);flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rdma{color:var(--aw);flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rdms{color:var(--ac2);font-size:13px;min-width:42px;text-align:center;background:var(--cd);padding:1px 6px;border-radius:4px}
+.rdmb{height:5px;background:var(--bd);border-radius:3px;overflow:hidden;display:flex;margin-bottom:3px}
+.rdmf{height:100%;transition:width .3s}
+.rdmf.hh{background:var(--hm)}.rdmf.dd{background:var(--ac2)}.rdmf.aa{background:var(--aw)}
+.rdmp{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:9px;font-family:Rajdhani,sans-serif;font-weight:700}
+.rdxg{color:var(--oo)}.rdfav{color:var(--mt)}
