@@ -411,9 +411,11 @@ export function initBrasileirao(root) {
       <div class="ldisc"><i class="fas fa-info-circle"></i> Seed diaria + combinatoria exata + balanceamento (soma, par/impar, decadas). 3 jogos + 1 bonus, ordenados por maior chance de acerto. Loteria e aleatoria — nao garante premio.</div></div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60) — 4 jogos</div>
       ${megaRows}
+      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 4 jogos: <b style="color:var(--ac2)">${res.mega.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
       <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Sena: 1 em ${mp.total.toLocaleString('pt-BR')} · Quina: ${fmtP(mp.quina)} · Quadra: ${fmtP(mp.quadra)}</div></div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80) — 4 jogos</div>
       ${quinaRows}
+      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 4 jogos: <b style="color:var(--ac2)">${res.quina.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
       <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Quina: 1 em ${qp.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(qp.quadra)} · Terno: ${fmtP(qp.terno)}</div></div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;

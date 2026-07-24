@@ -90,7 +90,40 @@ export function quality(nums, range) {
   return Math.max(0, Math.round(s));
 }
 
-// Gera varios candidatos e devolve os 'nPick' melhores por score de balanceamento
+// === Matriz de covariancia entre jogos (indicadores binarios) ===
+// Cada jogo é um vetor indicador 0/1 sobre o espaco de dezenas.
+// cov = E[(x-mx)(y-my)]; corr = cov / sqrt(var_x * var_y) em [-1,1].
+// Baixa correlacao entre os 4 jogos = cobertura independente de dezenas (menor sobreposicao).
+function indicator(nums, range) {
+  const v = new Array(range).fill(0);
+  for (const n of nums) v[n - 1] = 1;
+  return v;
+}
+
+export function correlation(a, b, range) {
+  const va = indicator(a, range), vb = indicator(b, range);
+  const n = range;
+  const ma = va.reduce((s, x) => s + x, 0) / n;
+  const mb = vb.reduce((s, x) => s + x, 0) / n;
+  let cov = 0, va2 = 0, vb2 = 0;
+  for (let i = 0; i < n; i++) {
+    const da = va[i] - ma, db = vb[i] - mb;
+    cov += da * db; va2 += da * da; vb2 += db * db;
+  }
+  const den = Math.sqrt(va2 * vb2);
+  return den < 1e-9 ? 0 : cov / den;
+}
+
+// Covariancia media de todos os pares do conjunto selecionado
+export function avgCovariance(games, range) {
+  if (games.length < 2) return 0;
+  let s = 0, c = 0;
+  for (let i = 0; i < games.length; i++)
+    for (let j = i + 1; j < games.length; j++) { s += correlation(games[i].nums, games[j].nums, range); c++; }
+  return +(s / c).toFixed(3);
+}
+
+// Gera candidatos e seleciona os 'nPick' com melhor qualidade + menor covariancia mutua
 function genTopGames(range, count, baseSeed, nCandidates, nPick) {
   const strategies = ['hot', 'balanced', 'spread'];
   const games = [];
@@ -103,15 +136,32 @@ function genTopGames(range, count, baseSeed, nCandidates, nPick) {
     games.push({ nums, q: quality(nums, range) });
   }
   games.sort((a, b) => b.q - a.q);
-  return games.slice(0, nPick);
+  // Selecao gulosa: maximiza qualidade mantendo baixa correlacao (independencia) entre jogos
+  const pool = games.slice(0, Math.min(nPick * 6, games.length));
+  const picked = [pool[0]];
+  const rest = pool.slice(1);
+  while (picked.length < nPick && rest.length) {
+    let bi = -1, bs = -Infinity;
+    for (let i = 0; i < rest.length; i++) {
+      let maxCorr = 0;
+      for (const p of picked) maxCorr = Math.max(maxCorr, correlation(rest[i].nums, p.nums, range));
+      const score = rest[i].q - maxCorr * 55; // penaliza sobreposicao (alta covariancia)
+      if (score > bs) { bs = score; bi = i; }
+    }
+    picked.push(rest.splice(bi, 1)[0]);
+  }
+  picked.sort((a, b) => b.q - a.q);
+  return picked;
 }
 
 export function gerarSugestoes() {
   const seed = dateSeed();
+  const megaGames = genTopGames(60, 6, seed, 120, 4);
+  const quinaGames = genTopGames(80, 5, seed + 100, 120, 4);
   return {
     date: new Date().toLocaleDateString('pt-BR'),
-    mega: { games: genTopGames(60, 6, seed, 90, 4) },
-    quina: { games: genTopGames(80, 5, seed + 100, 90, 4) },
+    mega: { games: megaGames, cov: avgCovariance(megaGames, 60) },
+    quina: { games: quinaGames, cov: avgCovariance(quinaGames, 80) },
     prob: { mega: megaProb(), quina: quinaProb() }
   };
 }
