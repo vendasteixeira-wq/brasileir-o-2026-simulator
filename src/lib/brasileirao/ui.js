@@ -3,6 +3,8 @@ import { monteCarlo } from './predict';
 import { gerarSugestoes } from './loteria';
 import { roundRobin, predictMatches } from './rodada';
 import { parseCSV, applyImport, clearImport } from './statsImport';
+import { REAL_TABLE } from './realStats';
+import { descriptive, pearson, linearRegression, anova, welchTTest } from './statEngine';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -52,6 +54,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'lot') rLot();
     if (b.dataset.t === 'imp') rImp();
     if (b.dataset.t === 'rod') rRod();
+    if (b.dataset.t === 'stat') rStat();
   }));
 
   // --- Canvas ---
@@ -461,6 +464,67 @@ export function initBrasileirao(root) {
     rRod();
     toast('Rodada ' + rodIdx + ' adicionada', 'ok');
   });
+
+  // --- Estatistica (motor open-source estilo SPSS/Minitab/R) ---
+  function corrColor(r) {
+    const a = Math.min(1, Math.abs(r));
+    return r >= 0 ? `rgba(0,230,118,${a * 0.55})` : `rgba(255,82,82,${a * 0.55})`;
+  }
+  function rStat() {
+    const VARS = ['ovr', 'xG', 'def', 'gk', 'atk', 'mid', 'ppda', 'pas', 'conv', 'pts'];
+    const VN = { ovr: 'OVR', xG: 'xG', def: 'DEF', gk: 'GK', atk: 'ATK', mid: 'MID', ppda: 'PPDA', pas: 'Passe%', conv: 'Conv%', pts: 'Pontos' };
+    const data = B20.map(t => {
+      const s = gts(t); const rt = REAL_TABLE.find(r => r.team === t);
+      return { team: t, ovr: s.ovr, xG: s.xG, def: s.def, gk: s.gk, atk: s.atk, mid: s.mid, ppda: s.ppda, pas: s.pas, conv: s.conv, pts: rt ? rt.pts : 0 };
+    });
+    const col = v => data.map(d => d[v]);
+    const descRows = VARS.map(v => {
+      const d = descriptive(col(v));
+      return `<tr><td>${VN[v]}</td><td>${d.n}</td><td>${d.mean.toFixed(2)}</td><td>${d.sd.toFixed(2)}</td><td>${d.min}</td><td>${d.q1.toFixed(1)}</td><td>${d.median.toFixed(1)}</td><td>${d.q3.toFixed(1)}</td><td>${d.max}</td><td>${d.skew.toFixed(2)}</td><td>${d.kurt.toFixed(2)}</td><td>${(d.cv * 100).toFixed(1)}%</td></tr>`;
+    }).join('');
+    const corrHead = VARS.map(v => `<div class="corr-h">${VN[v]}</div>`).join('');
+    const corrRows = VARS.map(rv => {
+      const head = `<div class="corr-lbl">${VN[rv]}</div>`;
+      const cells = VARS.map(cv => {
+        const r = pearson(col(rv), col(cv));
+        return `<div class="corr-cell" style="background:${corrColor(r)};color:${Math.abs(r) > 0.6 ? '#fff' : 'var(--tx)'}">${r.toFixed(2)}</div>`;
+      }).join('');
+      return head + cells;
+    }).join('');
+    const regVar = $('regVar') ? $('regVar').value : 'ovr';
+    const reg = linearRegression(col(regVar), col('pts'));
+    const sorted = [...data].sort((a, b) => b.pts - a.pts);
+    const top = sorted.slice(0, 10), bot = sorted.slice(10);
+    const aVar = $('aVar') ? $('aVar').value : 'xG';
+    const an = anova([top.map(d => d[aVar]), bot.map(d => d[aVar])]);
+    const wel = welchTTest(top.map(d => d[aVar]), bot.map(d => d[aVar]));
+    const sig = p => p < 0.001 ? '***' : p < 0.01 ? '**' : p < 0.05 ? '*' : 'ns';
+    $('statCon').innerHTML = `
+      <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-table"></i> Estatistica Descritiva (n=${data.length} times) — estilo SPSS/Minitab</div>
+        <div style="overflow-x:auto"><table class="st-tbl"><tr><th>Var</th><th>n</th><th>Media</th><th>DP</th><th>Min</th><th>Q1</th><th>Med</th><th>Q3</th><th>Max</th><th>Assym</th><th>Curt</th><th>CV</th></tr>${descRows}</table></div></div>
+      <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-th"></i> Matriz de Correlacao (Pearson)</div>
+        <div class="corr-mx" style="--n:${VARS.length}"><div></div>${corrHead}${corrRows}</div>
+        <div style="font-size:9px;color:var(--mt);margin-top:4px">Verde=correlacao positiva · Vermelho=negativa · intensidade proporcional a |r| · *** p&lt;0.001 ** p&lt;0.01 * p&lt;0.05</div></div>
+      <div class="st-grid">
+        <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-chart-line"></i> Regressao Linear OLS — Pontos ~ preditor</div>
+          <div style="margin-bottom:6px"><select id="regVar" class="psr" style="width:auto">${VARS.filter(v => v !== 'pts').map(v => `<option value="${v}" ${v === regVar ? 'selected' : ''}>${VN[v]}</option>`).join('')}</select></div>
+          <div style="font-size:11px;line-height:1.7">
+            <div>Equacao: <b style="color:var(--ac)">Pontos = ${reg.slope.toFixed(3)} × ${VN[regVar]} + ${reg.intercept.toFixed(2)}</b></div>
+            <div>R² = <b style="color:var(--ac2)">${reg.r2.toFixed(3)}</b> (r = ${reg.r.toFixed(3)}) · gl = ${reg.df}</div>
+            <div>Inclinacao = ${reg.slope.toFixed(3)} ± ${reg.se.toFixed(3)} · t = ${reg.t.toFixed(2)} · p = ${reg.p.toExponential(2)} ${sig(reg.p)}</div>
+          </div></div>
+        <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-layer-group"></i> ANOVA + t-Welch — Top10 vs Bottom10 (por pontos)</div>
+          <div style="margin-bottom:6px"><select id="aVar" class="psr" style="width:auto">${VARS.filter(v => v !== 'pts').map(v => `<option value="${v}" ${v === aVar ? 'selected' : ''}>${VN[v]}</option>`).join('')}</select></div>
+          <div style="font-size:11px;line-height:1.7">
+            <div>ANOVA: F(${an.dfB},${an.dfW}) = <b style="color:var(--ac2)">${an.F.toFixed(2)}</b> · p = ${an.p.toExponential(2)} ${sig(an.p)}</div>
+            <div>SSB=${an.ssB.toFixed(2)} · SSW=${an.ssW.toFixed(2)} · MSB=${an.msB.toFixed(2)} · MSW=${an.msW.toFixed(2)}</div>
+            <div>t-Welch: t(${wel.df.toFixed(1)}) = ${wel.t.toFixed(2)} · p = ${wel.p.toExponential(2)} ${sig(wel.p)} · Δmedia = ${wel.meanDiff.toFixed(2)}</div>
+          </div></div>
+      </div>
+      <div class="pnl" style="padding:8px"><div style="font-size:10px;color:var(--mt);line-height:1.5"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Motor estatistico open-source em JS puro (algoritmos de dominio publico): lgamma (Lanczos), beta incompleta regularizada (Numerical Recipes), distribuicoes t e F, OLS, ANOVA, Pearson/Spearman. Equivalentes em metodo ao R / PSPP / jamovi / Minitab — nenhum binario ou codigo privado utilizado.</div></div>`;
+    if ($('regVar')) $('regVar').addEventListener('change', rStat);
+    if ($('aVar')) $('aVar').addEventListener('change', rStat);
+  }
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---
   function rImp() {
