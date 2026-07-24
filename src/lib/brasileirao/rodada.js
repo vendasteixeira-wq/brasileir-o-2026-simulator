@@ -24,11 +24,13 @@ export function roundRobin(teams) {
 }
 
 // Roda Monte Carlo para cada jogo e devolve previsao compacta.
-export function predictMatches(matches, iter = 2000) {
+export function predictMatches(matches, iter = 3000) {
   return matches.map(([h, a]) => {
     const mc = monteCarlo(h, a, iter);
-    const score = mc.top && mc.top[0] ? mc.top[0].score : '1-1';
+    const top3 = mc.top.slice(0, 3).map(t => ({ score: t.score, pct: +t.pct.toFixed(1) }));
+    const score = top3[0]?.score || '1-1';
+    const hit = +(top3[0]?.pct || 0).toFixed(1);
     const fav = mc.win > mc.loss ? h : mc.loss > mc.win ? a : 'Empate';
-    return { h, a, win: mc.win, draw: mc.draw, loss: mc.loss, xgH: mc.xgH, xgA: mc.xgA, score, fav };
+    return { h, a, win: mc.win, draw: mc.draw, loss: mc.loss, xgH: mc.xgH, xgA: mc.xgA, score, hit, top3, fav };
   });
 }

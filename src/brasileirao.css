@@ -113,3 +113,22 @@ nav{display:flex;gap:3px;margin-bottom:8px;overflow-x:auto}nav button{flex-shrin
 .rdmf.hh{background:var(--hm)}.rdmf.dd{background:var(--ac2)}.rdmf.aa{background:var(--aw)}
 .rdmp{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:9px;font-family:Rajdhani,sans-serif;font-weight:700}
 .rdxg{color:var(--oo)}.rdfav{color:var(--mt)}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
+.pp-card{background:var(--cd2);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.pp-head{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:10px;margin-bottom:4px}
+.pp-hm{color:var(--hm);font-weight:700;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-aw{color:var(--aw);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-vs{color:var(--mt);font-size:9px}
+.pp-score{font-family:Rajdhani,sans-serif;font-size:26px;font-weight:700;text-align:center;line-height:1;margin:2px 0}
+.pp-hit-label{font-size:8px;color:var(--mt);text-align:center;margin-bottom:3px}
+.pp-gauge{height:8px;background:var(--bd);border-radius:4px;overflow:hidden}
+.pp-gauge-fill{height:100%;border-radius:4px;transition:width .4s}
+.pp-hit-pct{font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;text-align:center;color:var(--ac2);margin:2px 0 6px}
+.pp-alt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.pp-alt-row{display:grid;grid-template-columns:34px 1fr 38px;align-items:center;gap:5px;font-size:9px}
+.pp-sc{font-family:Rajdhani,sans-serif;font-weight:700;color:var(--tx)}
+.pp-alt-bar{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
+.pp-alt-bar div{height:100%;background:var(--ob);border-radius:2px}
+.pp-pct{font-family:Rajdhani,sans-serif;font-weight:700;color:var(--mt);text-align:right}
+.pp-wdl{display:flex;justify-content:space-between;font-size:9px;font-family:Rajdhani,sans-serif;font-weight:700;padding-top:5px;border-top:1px solid var(--bd)}
+.pp-xg{font-size:9px;color:var(--mt);text-align:center;margin-top:3px;font-family:Rajdhani,sans-serif;font-weight:600}

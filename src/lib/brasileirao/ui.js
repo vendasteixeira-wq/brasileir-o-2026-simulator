@@ -426,29 +426,36 @@ export function initBrasileirao(root) {
   function rRod() {
     const con = $('rodCon');
     if (!rodRounds.length) {
-      con.innerHTML = '<div style="color:var(--mt);text-align:center;font-size:11px;padding:14px">Clique em "Gerar 2 Rodadas" para prever 20 jogos de uma vez (round-robin dos 20 times).</div>';
+      con.innerHTML = '<div style="color:var(--mt);text-align:center;font-size:11px;padding:14px">Clique em "Gerar 12 Previsoes" para o painel de probabilidade de acerto (Monte Carlo + Dixon-Coles).</div>';
       return;
     }
     con.innerHTML = rodRounds.map(r => `
-      <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Rodada ${r.idx} — ${r.predictions.length} jogos</div>
+      <div class="lpnl"><div class="lhd"><i class="fas fa-dice"></i> ${r.predictions.length} previsoes · Monte Carlo 3000x · Dixon-Coles</div>
+      <div class="pp-grid">
       ${r.predictions.map(p => `
-        <div class="rdm">
-          <div class="rdmt"><span class="rdmh">${p.h}</span><span class="rdms">${p.score}</span><span class="rdma">${p.a}</span></div>
-          <div class="rdmb"><div class="rdmf hh" style="width:${p.win}%"></div><div class="rdmf dd" style="width:${p.draw}%"></div><div class="rdmf aa" style="width:${p.loss}%"></div></div>
-          <div class="rdmp"><span style="color:var(--hm)">${p.win}%</span><span style="color:var(--ac2)">${p.draw}%</span><span style="color:var(--aw)">${p.loss}%</span><span class="rdxg">xG ${p.xgH}-${p.xgA}</span><span class="rdfav">Fav: <b style="color:var(--ac)">${p.fav}</b></span></div>
+        <div class="pp-card">
+          <div class="pp-head"><span class="pp-hm">${p.h}</span><span class="pp-vs">vs</span><span class="pp-aw">${p.a}</span></div>
+          <div class="pp-score" style="color:${p.hit>15?'var(--ac)':p.hit>8?'var(--ac2)':'var(--oo)'}">${p.score}</div>
+          <div class="pp-hit-label">Prob. de acerto do placar</div>
+          <div class="pp-gauge"><div class="pp-gauge-fill" style="width:${Math.min(100,p.hit)}%;background:${p.hit>15?'var(--ac)':p.hit>8?'var(--ac2)':'var(--oo)'}"></div></div>
+          <div class="pp-hit-pct">${p.hit.toFixed(1)}%</div>
+          <div class="pp-alt">${p.top3.map(t => `<div class="pp-alt-row"><span class="pp-sc">${t.score}</span><div class="pp-alt-bar"><div style="width:${Math.min(100,t.pct*2.5)}%"></div></div><span class="pp-pct">${t.pct.toFixed(1)}%</span></div>`).join('')}</div>
+          <div class="pp-wdl"><span style="color:var(--hm)">V ${p.win}%</span><span style="color:var(--ac2)">E ${p.draw}%</span><span style="color:var(--aw)">D ${p.loss}%</span></div>
+          <div class="pp-xg">xG ${p.xgH}-${p.xgA} · Fav: <b style="color:var(--ac)">${p.fav}</b></div>
         </div>`).join('')}
-      </div>`).join('');
+      </div></div>`).join('');
   }
   $('bRod').addEventListener('click', () => {
-    const rr = roundRobin(B20);
+    const flat = roundRobin(B20).flat();
     rodRounds = []; rodIdx = 0;
-    for (let i = 0; i < 2; i++) { rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(rr[(rodIdx - 1) % rr.length]) }); }
+    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(flat.slice(0, 12)) });
     rRod();
-    toast('2 rodadas geradas — 20 previsoes', 'ok');
+    toast('12 previsoes geradas — painel Monte Carlo', 'ok');
   });
   $('bRodAdd').addEventListener('click', () => {
-    const rr = roundRobin(B20);
-    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(rr[(rodIdx - 1) % rr.length]) });
+    const flat = roundRobin(B20).flat();
+    const off = (rodIdx * 12) % flat.length;
+    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(flat.slice(off, off + 10)) });
     rRod();
     toast('Rodada ' + rodIdx + ' adicionada', 'ok');
   });
