@@ -401,21 +401,21 @@ export function initBrasileirao(root) {
     const res = gerarSugestoes();
     const ball = (n, big) => `<span class="lb${big ? ' bg' : ''}">${n}</span>`;
     const setHTML = (g, big) => g.nums.map(n => ball(n, big)).join('') + `<span class="lq" style="color:${rc(g.q)}">${g.q}%</span>`;
-    const labels = ['Jogo 1 (melhor chance)', 'Jogo 2', 'Jogo 3', 'Jogo Bonus'];
+    const labels = Array.from({ length: 12 }, (_, i) => i === 0 ? 'Jogo 1 (melhor chance)' : 'Jogo ' + (i + 1));
     const mp = res.prob.mega, qp = res.prob.quina;
     const fmtP = p => p < 1e-4 ? (p * 1e6).toFixed(2) + ' ppm' : (p * 100).toFixed(4) + '%';
     const megaRows = res.mega.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
     const quinaRows = res.quina.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
     $('lcon').innerHTML = `
       <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Sugestoes para ${res.date}</div>
-      <div class="ldisc"><i class="fas fa-info-circle"></i> Seed diaria + combinatoria exata + balanceamento (soma, par/impar, decadas). 3 jogos + 1 bonus, ordenados por maior chance de acerto. Loteria e aleatoria — nao garante premio.</div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60) — 4 jogos</div>
+      <div class="ldisc"><i class="fas fa-info-circle"></i> Seed diaria + combinatoria exata + balanceamento (soma, par/impar, decadas) + matriz de covariancia (selecao com baixa correlacao entre jogos). 12 jogos ordenados por maior chance de acerto. Loteria e aleatoria — nao garante premio.</div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60) — 12 jogos</div>
       ${megaRows}
-      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 4 jogos: <b style="color:var(--ac2)">${res.mega.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
+      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 12 jogos: <b style="color:var(--ac2)">${res.mega.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
       <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Sena: 1 em ${mp.total.toLocaleString('pt-BR')} · Quina: ${fmtP(mp.quina)} · Quadra: ${fmtP(mp.quadra)}</div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80) — 4 jogos</div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80) — 12 jogos</div>
       ${quinaRows}
-      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 4 jogos: <b style="color:var(--ac2)">${res.quina.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
+      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 12 jogos: <b style="color:var(--ac2)">${res.quina.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
       <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Quina: 1 em ${qp.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(qp.quadra)} · Terno: ${fmtP(qp.terno)}</div></div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;

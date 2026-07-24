@@ -123,7 +123,9 @@ export function avgCovariance(games, range) {
   return +(s / c).toFixed(3);
 }
 
-// Gera candidatos e seleciona os 'nPick' com melhor qualidade + menor covariancia mutua
+// Gera candidatos e seleciona os 'nPick' com melhor qualidade + menor covariancia media mutua
+// Selecao gulosa robusta: penaliza a correlacao MEDIA com todos os ja escolhidos (nao apenas o max),
+// favorecendo conjuntos com baixa redundancia / alta cobertura independente de dezenas.
 function genTopGames(range, count, baseSeed, nCandidates, nPick) {
   const strategies = ['hot', 'balanced', 'spread'];
   const games = [];
@@ -136,16 +138,16 @@ function genTopGames(range, count, baseSeed, nCandidates, nPick) {
     games.push({ nums, q: quality(nums, range) });
   }
   games.sort((a, b) => b.q - a.q);
-  // Selecao gulosa: maximiza qualidade mantendo baixa correlacao (independencia) entre jogos
-  const pool = games.slice(0, Math.min(nPick * 6, games.length));
+  const pool = games.slice(0, Math.min(nPick * 8, games.length));
   const picked = [pool[0]];
   const rest = pool.slice(1);
   while (picked.length < nPick && rest.length) {
     let bi = -1, bs = -Infinity;
     for (let i = 0; i < rest.length; i++) {
-      let maxCorr = 0;
-      for (const p of picked) maxCorr = Math.max(maxCorr, correlation(rest[i].nums, p.nums, range));
-      const score = rest[i].q - maxCorr * 55; // penaliza sobreposicao (alta covariancia)
+      let corrSum = 0;
+      for (const p of picked) corrSum += correlation(rest[i].nums, p.nums, range);
+      const meanCorr = corrSum / picked.length; // covariancia media com o conjunto
+      const score = rest[i].q - meanCorr * 60; // penaliza sobreposicao media
       if (score > bs) { bs = score; bi = i; }
     }
     picked.push(rest.splice(bi, 1)[0]);
@@ -156,8 +158,8 @@ function genTopGames(range, count, baseSeed, nCandidates, nPick) {
 
 export function gerarSugestoes() {
   const seed = dateSeed();
-  const megaGames = genTopGames(60, 6, seed, 120, 4);
-  const quinaGames = genTopGames(80, 5, seed + 100, 120, 4);
+  const megaGames = genTopGames(60, 6, seed, 400, 12);
+  const quinaGames = genTopGames(80, 5, seed + 100, 400, 12);
   return {
     date: new Date().toLocaleDateString('pt-BR'),
     mega: { games: megaGames, cov: avgCovariance(megaGames, 60) },
