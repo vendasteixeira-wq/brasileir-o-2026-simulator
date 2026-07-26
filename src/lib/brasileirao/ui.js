@@ -7,7 +7,7 @@ import { parseCSV, applyImport, clearImport } from './statsImport';
 import { REAL_TABLE } from './realStats';
 import { descriptive, pearson, linearRegression, anova, welchTTest } from './statEngine';
 import { runCalibration, getMetrics, clearHistory, getHistory } from './learning';
-import { getCorrections } from './corrections';
+import { getCorrections, setCorrections } from './corrections';
 import { requestNotifyPermission, notifyRoundFinished, notifyPermission } from './notify';
 import { exportAllCSV } from './export';
 import { base44 } from '@/api/base44Client';
@@ -835,11 +835,13 @@ export function initBrasileirao(root) {
         <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
         <button id="bExp" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-csv"></i> Exportar CSV</button>
         <button id="bComp" style="padding:6px 12px;background:rgba(255,120,40,.1);border:1px solid #ff7820;color:#ff9b4d;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-balance-scale"></i> vs Rodada Real</button>
+        <button id="bAutoAdj" style="padding:6px 12px;background:rgba(0,230,118,.12);border:1px solid var(--ac);color:var(--ac);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-magic"></i> Ajustar Pesos</button>
       </div>
       <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
       <div id="intAI" style="margin-top:6px"></div>
       <div id="intHeat" style="margin-top:6px"></div>
       <div id="intComp" style="margin-top:6px"></div>
+      <div id="intAdj" style="margin-top:6px"></div>
       </div>`;
     $('bCalib').onclick = () => {
       const ms = roundRobin(B20).flat().slice(0, 10);
@@ -852,6 +854,7 @@ export function initBrasileirao(root) {
     $('bHeat').onclick = rHeat;
     $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
     $('bComp').onclick = () => renderRoundCompare($('intComp'));
+    $('bAutoAdj').onclick = rAutoAdj;
     $('bExp').onclick = async () => {
       toast('Exportando histórico...', 'ok');
       try {
@@ -880,6 +883,47 @@ export function initBrasileirao(root) {
     } catch (e) {
       box.innerHTML = '<div style="color:var(--dn);font-size:11px">Falha: ' + e.message + '</div>';
     }
+  }
+
+  // --- Ajuste automatico dos pesos com base no erro percentual das ultimas partidas ---
+  function rAutoAdj() {
+    const box = $('intAdj');
+    const hist = getHistory();
+    const m = getMetrics();
+    const c = getCorrections();
+    if (!hist || !hist.length || !m) {
+      box.innerHTML = '<div class="pnl" style="padding:8px;background:var(--cd2);color:var(--mt);font-size:11px">Sem histórico ainda. Clique em <b>Calibrar</b> (uma ou mais vezes) para gerar partidas e depois ajustar os pesos.</div>';
+      return;
+    }
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const pctErr = (pred, act) => act ? ((pred - act) / act * 100) : 0;
+    const eHome = pctErr(m.predHomeRate, m.actHomeRate);
+    const eDraw = pctErr(m.predDrawRate, m.actDrawRate);
+    const eGoals = pctErr(m.predGoals, m.actGoals);
+    const sugHome = clamp(c.homeAdv * (m.actHomeRate / (m.predHomeRate || 40)), 0.05, 0.45);
+    const sugDraw = clamp(c.drawBias * (m.actDrawRate / (m.predDrawRate || 25)), 0.7, 1.4);
+    const sugGoals = clamp(c.goalScale * (m.actGoals / (m.predGoals || 2.4)), 0.7, 1.4);
+    const arr = (cur, sug) => sug > cur + 0.005 ? '▲' : sug < cur - 0.005 ? '▼' : '·';
+    const col = (cur, sug) => sug > cur + 0.005 ? 'var(--ac)' : sug < cur - 0.005 ? 'var(--dn)' : 'var(--mt)';
+    const row = (label, cur, sug, err, hint) => `<div class="cw-card"><div class="cw-h">${label}</div><div class="cw-val" style="color:${col(cur,sug)}">${cur.toFixed(3)} → ${sug.toFixed(3)} <span class="cw-arr">${arr(cur,sug)}</span></div><div class="cw-def">erro ${err > 0 ? '+' : ''}${err.toFixed(1)}% · ${hint}</div></div>`;
+    const before = { homeAdv: c.homeAdv, drawBias: c.drawBias, goalScale: c.goalScale };
+    setCorrections({ homeAdv: +sugHome.toFixed(3), drawBias: +sugDraw.toFixed(3), goalScale: +sugGoals.toFixed(3), n: m.n });
+    box.innerHTML = `<div class="pnl" style="padding:8px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-magic" style="color:var(--ac)"></i> Ajuste Automático de Pesos — baseado em ${m.n} partidas</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;margin-bottom:6px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Compara previsão vs real em cada dimensão, calcula o erro percentual e recalcula os pesos para corrigir o viés. Os novos valores já foram aplicados nas próximas previsões (Dixon-Coles + Monte Carlo).</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;font-size:10px;margin-bottom:6px">
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Vitória casa</div><b style="font-family:Rajdhani;color:var(--hm)">${m.predHomeRate}% prev · ${m.actHomeRate}% real</b></div>
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Empates</div><b style="font-family:Rajdhani;color:var(--ac2)">${m.predDrawRate}% prev · ${m.actDrawRate}% real</b></div>
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Gols/jogo</div><b style="font-family:Rajdhani;color:var(--oo)">${m.predGoals} prev · ${m.actGoals} real</b></div>
+      </div>
+      <div class="cw-grid">
+        ${row('Mando de campo (homeAdv)', before.homeAdv, sugHome, eHome, 'multiplica ataque mandante')}
+        ${row('Viés de empate (drawBias)', before.drawBias, sugDraw, eDraw, 'repondera placares iguais')}
+        ${row('Escala de gols (goalScale)', before.goalScale, sugGoals, eGoals, 'multiplica lambdaH/lambdaA')}
+      </div>
+      <div style="font-size:9px;color:var(--mt);margin-top:5px;line-height:1.4"><i class="fas fa-check-circle" style="color:var(--ac)"></i> Pesos atualizados e persistidos. <b>Antes:</b> ${before.homeAdv} / ${before.drawBias} / ${before.goalScale} → <b>Depois:</b> ${sugHome.toFixed(3)} / ${sugDraw.toFixed(3)} / ${sugGoals.toFixed(3)}.</div>
+    </div>`;
+    rMC();
+    toast('Pesos ajustados automaticamente — erro ' + Math.abs(eHome).toFixed(0) + '%/' + Math.abs(eDraw).toFixed(0) + '%/' + Math.abs(eGoals).toFixed(0) + '%', 'ok');
   }
 
   // --- Relatório detalhado: previsões passadas vs resultados reais ---
