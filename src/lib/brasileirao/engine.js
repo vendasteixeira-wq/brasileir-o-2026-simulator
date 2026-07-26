@@ -461,6 +461,7 @@ export class Sim {
       a: { sh: 0, ot: 0, pa: 0, pc: 0, tk: 0, fl: 0, pr: 0, ps: 0, kr: 0, dist: 0 }
     };
     this.pt = { h: 0, a: 0 }; this.lp = 'h'; this.pd = {};
+    this.heat = { mv: [], wp: [] }; this._hsm = 0;
     this.init();
   }
 
@@ -510,6 +511,7 @@ export class Sim {
       a: { sh: 0, ot: 0, pa: 0, pc: 0, tk: 0, fl: 0, pr: 0, ps: 0, kr: 0, dist: 0 }
     };
     this.pt = { h: 0, a: 0 }; this.rp();
+    this.heat = { mv: [], wp: [] }; this._hsm = 0;
   }
 
   setSpd(s) { this.spd = s; }
@@ -637,6 +639,13 @@ export class Sim {
     if (c) { this.lp = c.tm; this.pt[c.tm] += gd; }
     this.updP(c);
     this.ga().forEach(p => { if (p.v.ln() > 2) this.st[p.tm].dist += p.v.ln() * gd / 1000; });
+    this._hsm += gd;
+    if (this._hsm >= 0.5) {
+      this._hsm = 0;
+      const mv = this.heat.mv;
+      this.ga().forEach(p => { if (p.d.pos === 'GK') return; mv.push(+(p.p.x / PW).toFixed(3), +(p.p.y / PH).toFixed(3)); });
+      if (mv.length > 6000) mv.splice(0, mv.length - 6000);
+    }
   }
 
   phys(dt) {
@@ -792,6 +801,7 @@ export class Sim {
     this.bl.og = true;
     this.st[p.tm].pa++;
     if (fa > 0.6) this.st[p.tm].pc++;
+    else this.heat.wp.push(+(p.p.x / PW).toFixed(3), +(p.p.y / PH).toFixed(3));
     if (isK) this.st[p.tm].kr++;
   }
 

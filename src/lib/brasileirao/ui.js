@@ -15,6 +15,7 @@ export function initBrasileirao(root) {
 
   let SIM = null;
   let USQ = new Array(11).fill(null);
+  let heatAcc = { mv: [], wp: [] };
   let CF = '4-3-3';
   let SS = -1;
   let lt = 0;
@@ -69,7 +70,7 @@ export function initBrasileirao(root) {
     cv.height = w.clientHeight * (window.devicePixelRatio || 1);
   }
   rsCV();
-  const onResize = () => { rsCV(); if (document.querySelector('#freqCV')) rFreqChart(); };
+  const onResize = () => { rsCV(); if (document.querySelector('#freqCV')) rFreqChart(); if (document.querySelector('#heatCV')) rHeat(); };
   window.addEventListener('resize', onResize);
 
   // --- Toast ---
@@ -173,6 +174,7 @@ export function initBrasileirao(root) {
     if (SIM && SIM.run) return;
     const h = $('ht').value, a = $('at').value;
     if (h === a) { toast('Selecione times diferentes!', 'wr'); return; }
+    if (SIM && SIM.heat) { heatAcc.mv.push(...SIM.heat.mv); heatAcc.wp.push(...SIM.heat.wp); if (heatAcc.mv.length > 20000) heatAcc.mv.splice(0, heatAcc.mv.length - 20000); }
     rsCV();
     SIM = new Sim(cv, h, a);
     SIM.start();
@@ -182,6 +184,7 @@ export function initBrasileirao(root) {
   $('bQ').addEventListener('click', () => {
     const h = $('ht').value, a = $('at').value;
     if (h === a) { toast('Selecione times diferentes!', 'wr'); return; }
+    if (SIM && SIM.heat) { heatAcc.mv.push(...SIM.heat.mv); heatAcc.wp.push(...SIM.heat.wp); if (heatAcc.mv.length > 20000) heatAcc.mv.splice(0, heatAcc.mv.length - 20000); }
     rsCV();
     SIM = new Sim(cv, h, a);
     SIM.quickSim();
@@ -686,10 +689,12 @@ export function initBrasileirao(root) {
         <button id="bCalib" style="padding:6px 12px;background:rgba(0,230,118,.1);border:1px solid var(--ac);color:var(--ac);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-bolt"></i> Calibrar (10 partidas)</button>
         <button id="bIntAI" style="padding:6px 12px;background:rgba(99,102,241,.12);border:1px solid #6366f1;color:#818cf8;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-robot"></i> Intuição IA</button>
         <button id="bRel" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-medical-alt"></i> Relatório</button>
+        <button id="bHeat" style="padding:6px 12px;background:rgba(255,120,40,.1);border:1px solid #ff7820;color:#ff9b4d;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-fire"></i> Mapa de Calor</button>
         <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
       </div>
       <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
       <div id="intAI" style="margin-top:6px"></div>
+      <div id="intHeat" style="margin-top:6px"></div>
       </div>`;
     $('bCalib').onclick = () => {
       const ms = roundRobin(B20).flat().slice(0, 10);
@@ -699,7 +704,9 @@ export function initBrasileirao(root) {
     };
     $('bIntAI').onclick = rIntAI;
     $('bRel').onclick = rIntRelatorio;
+    $('bHeat').onclick = rHeat;
     $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
+    rHeat();
   }
   async function rIntAI() {
     const h = $('ht').value, a = $('at').value;
@@ -823,6 +830,71 @@ export function initBrasileirao(root) {
       <div class="pnl" style="padding:8px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-list-ol"></i> Previsões vs resultados (mais recente primeiro)</div>
         <div class="rel-list">${rows}</div>
       </div>`;
+  }
+
+  // --- Mapa de calor: movimentação & passes errados ---
+  function rHeat() {
+    const box = $('intHeat');
+    if (!box) return;
+    const mv = heatAcc.mv.concat(SIM ? SIM.heat.mv : []);
+    const wp = heatAcc.wp.concat(SIM ? SIM.heat.wp : []);
+    const nP = Math.round(mv.length / 2), nW = Math.round(wp.length / 2);
+    box.innerHTML = `<div class="pnl" style="padding:8px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-fire"></i> Mapa de Calor — movimentação & passes errados</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;margin-bottom:6px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Agrega a movimentação dos jogadores de linha durante as simulações ao vivo (Partida → Iniciar). Zonas quentes (laranja → amarelo/branco) indicam maior concentração de jogadores; pontos <span style="color:var(--dn)">vermelhos</span> marcam a origem dos passes errados (precisão &lt; 60%).</div>
+      <div style="width:100%;overflow-x:auto"><canvas id="heatCV" style="display:block;width:100%;height:300px;background:#0a2415;border:1px solid var(--bd);border-radius:6px"></canvas></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px"><span style="font-size:10px;color:var(--mt);font-family:Rajdhani,sans-serif;font-weight:700">${nP} amostras de posição · ${nW} passes errados</span><span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--mt)">Movimento:
+        <span style="width:16px;height:8px;background:linear-gradient(90deg,#1a2a1a,#2a8f3a,#e6c200,#fff);border-radius:2px"></span>
+        <span style="width:8px;height:8px;background:var(--dn);border-radius:50%"></span> passe errado
+      </span></div></div>`;
+    drawHeat($('heatCV'), mv, wp);
+  }
+  function drawHeat(cv, mv, wp) {
+    const host = cv.parentElement;
+    const cssW = host.clientWidth || 600, cssH = 300;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = cssW * dpr; cv.height = cssH * dpr; cv.style.height = cssH + 'px';
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    const m = 6;
+    ctx.fillStyle = '#0d2a1a'; ctx.fillRect(0, 0, cssW, cssH);
+    const cols = 10;
+    for (let i = 0; i < cols; i++) { ctx.fillStyle = i % 2 ? '#103020' : '#0c2618'; ctx.fillRect(i * cssW / cols, 0, cssW / cols + 1, cssH); }
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(m, m, cssW - 2 * m, cssH - 2 * m);
+    ctx.beginPath(); ctx.moveTo(cssW / 2, m); ctx.lineTo(cssW / 2, cssH - m); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cssW / 2, cssH / 2, Math.min(cssW, cssH) * 0.12, 0, Math.PI * 2); ctx.stroke();
+    const pw = cssW * 0.15, ph = cssH * 0.5, gw = cssW * 0.05, gh = cssH * 0.3;
+    ctx.strokeRect(m, cssH / 2 - ph / 2, pw, ph); ctx.strokeRect(m, cssH / 2 - gh / 2, gw, gh);
+    ctx.strokeRect(cssW - m - pw, cssH / 2 - ph / 2, pw, ph); ctx.strokeRect(cssW - m - gw, cssH / 2 - gh / 2, gw, gh);
+    if (!mv.length && !wp.length) {
+      ctx.fillStyle = '#5a7090'; ctx.font = '11px Rajdhani, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Rode uma simulação ao vivo (Partida → Iniciar) para gerar o mapa de calor.', cssW / 2, cssH / 2);
+      return;
+    }
+    if (mv.length) {
+      ctx.globalCompositeOperation = 'lighter';
+      const r = Math.max(14, cssW * 0.035);
+      for (let i = 0; i < mv.length; i += 2) {
+        const x = mv[i] * cssW, y = mv[i + 1] * cssH;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(255,150,40,0.16)');
+        g.addColorStop(0.6, 'rgba(255,120,0,0.05)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (wp.length) {
+      for (let i = 0; i < wp.length; i += 2) {
+        const x = wp[i] * cssW, y = wp[i + 1] * cssH;
+        ctx.fillStyle = 'rgba(255,82,82,0.85)'; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,150,150,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
+    ctx.strokeRect(m, m, cssW - 2 * m, cssH - 2 * m);
+    ctx.beginPath(); ctx.moveTo(cssW / 2, m); ctx.lineTo(cssW / 2, cssH - m); ctx.stroke();
   }
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---
