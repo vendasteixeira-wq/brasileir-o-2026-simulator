@@ -8,6 +8,7 @@ import { REAL_TABLE } from './realStats';
 import { descriptive, pearson, linearRegression, anova, welchTTest } from './statEngine';
 import { runCalibration, getMetrics, clearHistory, getHistory } from './learning';
 import { getCorrections } from './corrections';
+import { requestNotifyPermission, notifyRoundFinished, notifyPermission } from './notify';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -591,14 +592,31 @@ export function initBrasileirao(root) {
     rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(flat.slice(0, 12)) });
     rRod();
     toast('12 previsoes geradas — painel Monte Carlo', 'ok');
+    notifyRoundFinished(rodIdx, 12);
   });
   $('bRodAdd').addEventListener('click', () => {
     const flat = roundRobin(B20).flat();
     const off = (rodIdx * 12) % flat.length;
-    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(flat.slice(off, off + 10)) });
+    const batch = predictMatches(flat.slice(off, off + 10));
+    rodRounds.push({ idx: ++rodIdx, predictions: batch });
     rRod();
     toast('Rodada ' + rodIdx + ' adicionada', 'ok');
+    notifyRoundFinished(rodIdx, batch.length);
   });
+  $('bNotif').addEventListener('click', async () => {
+    const perm = await requestNotifyPermission();
+    if (perm === 'granted') { toast('Notificações ativadas — você será avisado ao finalizar cada rodada.', 'ok'); updateNotifBtn(); }
+    else if (perm === 'denied') toast('Notificações bloqueadas pelo navegador.', 'wr');
+    else toast('Permissão de notificação não concedida.', 'wr');
+  });
+  function updateNotifBtn() {
+    const btn = $('bNotif'); if (!btn) return;
+    const p = notifyPermission();
+    if (p === 'granted') { btn.innerHTML = '<i class="fas fa-bell"></i> Notificações Ativas'; btn.disabled = true; btn.style.opacity = '.6'; btn.style.cursor = 'default'; }
+    else if (p === 'denied') btn.innerHTML = '<i class="fas fa-bell-slash"></i> Bloqueado';
+    else btn.innerHTML = '<i class="fas fa-bell"></i> Ativar Notificações';
+  }
+  updateNotifBtn();
 
   // --- Estatistica (motor open-source estilo SPSS/Minitab/R) ---
   function corrColor(r) {
