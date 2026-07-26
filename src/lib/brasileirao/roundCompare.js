@@ -145,6 +145,28 @@ function render(container, real, rows) {
     <span style="width:54px;font-size:10px;font-family:Rajdhani,sans-serif;font-weight:700;color:${diffCol(t)};text-align:right">${t.diffPct > 0 ? '+' : ''}${t.diffPct}%</span>
   </div>`).join('');
 
+  // Grafico de margem de erro com sinal (previsto - real) por time
+  const maxErr = Math.max(1, ...teams.map(t => Math.abs(t.pred - t.real)));
+  const errBars = teams.map(t => {
+    const err = t.pred - t.real;
+    const wPct = Math.abs(err) / maxErr * 50;
+    const col = err > 0 ? 'var(--dn)' : err < 0 ? 'var(--ob)' : 'var(--ac)';
+    const tag = err > 0 ? 'Super' : err < 0 ? 'Sub' : 'Exato';
+    const bar = err > 0
+      ? `<div style="position:absolute;left:50%;top:3px;height:9px;width:${wPct}%;background:${col};border-radius:3px"></div>`
+      : err < 0
+        ? `<div style="position:absolute;right:50%;top:3px;height:9px;width:${wPct}%;background:${col};border-radius:3px"></div>`
+        : `<div style="position:absolute;left:50%;top:6px;width:3px;height:3px;background:${col};border-radius:50%"></div>`;
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+      <span style="width:84px;font-size:9px;color:var(--mt);font-family:Rajdhani,sans-serif;font-weight:700;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.name}">${t.name}</span>
+      <div style="flex:1;position:relative;height:15px;background:var(--cd2);border-radius:4px">
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--mt)"></div>
+        ${bar}
+      </div>
+      <span style="width:66px;font-size:9px;font-family:Rajdhani,sans-serif;font-weight:700;color:${col};text-align:left">${err > 0 ? '+' : ''}${err} · ${tag}</span>
+    </div>`;
+  }).join('');
+
   out.innerHTML = `
     <div class="pnl" style="padding:8px;margin-top:6px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-table"></i> Tabela comparativa — Rodada ${real.round || ''} (${n} jogos finalizados)</div>
       <div style="overflow-x:auto"><table class="gt2" style="width:100%"><tr><th style="text-align:left">Partida</th><th>Prev.</th><th>V/E/D %</th><th>Real</th><th>Resultou</th><th>Acerto</th><th>Erro</th></tr>${tableRows}</table></div>
@@ -169,6 +191,12 @@ function render(container, real, rows) {
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-left:90px"><span style="flex:1;font-size:9px;color:var(--oo);font-family:Rajdhani,sans-serif;font-weight:700">Previsto</span><span style="width:54px"></span></div>
       ${teamBars}
       <div style="font-size:9px;color:var(--mt);margin-top:6px;border-top:1px solid var(--bd);padding-top:5px"><i class="fas fa-info-circle"></i> Verde = |dif| &lt; 15% (preciso) · Amarelo = 15–35% · Vermelho = &gt; 35% (menor precisão).</div>
+    </div>
+    <div class="pnl" style="padding:8px;margin-top:6px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-exchange-alt"></i> Margem de Erro por Time — Subestimando vs Superestimando</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;margin-bottom:8px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Margem = gols previstos − gols reais. Barras à <b style="color:var(--dn)">direita (vermelho)</b> = modelo <b>superestimando</b> o time · barras à <b style="color:var(--ob)">esquerda (azul)</b> = modelo <b>subestimando</b> · linha central = erro zero. Ordenado por maior módulo de erro.</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:84px"></span><div style="flex:1;display:flex;justify-content:space-between;font-size:8px;color:var(--mt);font-family:Rajdhani,sans-serif;font-weight:700"><span style="color:var(--ob)">← Subestimando</span><span>0</span><span style="color:var(--dn)">Superestimando →</span></div><span style="width:66px"></span></div>
+      ${errBars}
+      <div style="font-size:9px;color:var(--mt);margin-top:6px;border-top:1px solid var(--bd);padding-top:5px"><i class="fas fa-info-circle"></i> Compare com o gráfico acima: um time com diferença % alta e barra à direita tem ataque superestimado; à esquerda, subestimado — ajuste as variáveis de peso para corrigir o viés.</div>
     </div>`;
 }
 
