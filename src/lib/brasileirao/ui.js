@@ -12,6 +12,7 @@ import { requestNotifyPermission, notifyRoundFinished, notifyPermission } from '
 import { exportAllCSV } from './export';
 import { base44 } from '@/api/base44Client';
 import { renderPanel } from './panel';
+import { fetchRealRound, assignDates, renderRealRound } from './realRound';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -601,6 +602,7 @@ export function initBrasileirao(root) {
       ${r.predictions.map(p => `
         <div class="pp-card">
           <div class="pp-head"><span class="pp-hm">${p.h}</span><span class="pp-vs">vs</span><span class="pp-aw">${p.a}</span></div>
+          <div style="font-size:10px;color:var(--ob);font-family:Rajdhani,sans-serif;font-weight:700;margin:2px 0">${p.date ? `<i class="fas fa-calendar"></i> ${p.date} ${p.time || ''}` : ''}</div>
           <div class="pp-score" style="color:${p.hit>15?'var(--ac)':p.hit>8?'var(--ac2)':'var(--oo)'}">${p.score}</div>
           <div class="pp-hit-label">Prob. de acerto do placar</div>
           <div class="pp-gauge"><div class="pp-gauge-fill" style="width:${Math.min(100,p.hit)}%;background:${p.hit>15?'var(--ac)':p.hit>8?'var(--ac2)':'var(--oo)'}"></div></div>
@@ -611,10 +613,16 @@ export function initBrasileirao(root) {
         </div>`).join('')}
       </div></div>`).join('');
   }
+  function assignRodDates(predictions) {
+    const dates = assignDates(predictions.length, $('rodStart') ? $('rodStart').value : '');
+    predictions.forEach((p, i) => { p.date = dates[i].date; p.time = dates[i].time; });
+  }
   $('bRod').addEventListener('click', () => {
     const flat = roundRobin(B20).flat();
     rodRounds = []; rodIdx = 0;
-    rodRounds.push({ idx: ++rodIdx, predictions: predictMatches(flat.slice(0, 12)) });
+    const predictions = predictMatches(flat.slice(0, 12));
+    assignRodDates(predictions);
+    rodRounds.push({ idx: ++rodIdx, predictions });
     rRod();
     toast('12 previsoes geradas — painel Monte Carlo', 'ok');
     notifyRoundFinished(rodIdx, 12);
@@ -623,10 +631,28 @@ export function initBrasileirao(root) {
     const flat = roundRobin(B20).flat();
     const off = (rodIdx * 12) % flat.length;
     const batch = predictMatches(flat.slice(off, off + 10));
+    assignRodDates(batch);
     rodRounds.push({ idx: ++rodIdx, predictions: batch });
     rRod();
     toast('Rodada ' + rodIdx + ' adicionada', 'ok');
     notifyRoundFinished(rodIdx, batch.length);
+  });
+  $('bRodReal').addEventListener('click', async () => {
+    const btn = $('bRodReal');
+    const box = $('rodReal');
+    const rn = parseInt(($('rodNum') || {}).value) || 1;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...'; btn.disabled = true;
+    box.innerHTML = '<div style="color:var(--mt);font-size:11px;padding:8px"><i class="fas fa-spinner fa-spin"></i> Buscando resultados reais online (GE/ESPN/UOL)...</div>';
+    try {
+      const data = await fetchRealRound(rn);
+      renderRealRound(data, box);
+      toast('Rodada ' + rn + ' atualizada online!', 'ok');
+    } catch (e) {
+      box.innerHTML = '<div style="color:var(--dn);font-size:11px;padding:8px">Falha na busca: ' + e.message + '</div>';
+    } finally {
+      btn.innerHTML = orig; btn.disabled = false;
+    }
   });
   $('bNotif').addEventListener('click', async () => {
     const perm = await requestNotifyPermission();
@@ -991,6 +1017,7 @@ export function initBrasileirao(root) {
   const _d = new Date(); _d.setDate(_d.getDate() + 1); _d.setHours(20, 0, 0, 0);
   const _p = n => String(n).padStart(2, '0');
   $('calDT').value = `${_d.getFullYear()}-${_p(_d.getMonth() + 1)}-${_p(_d.getDate())}T${_p(_d.getHours())}:${_p(_d.getMinutes())}`;
+  if ($('rodStart')) { const _rs = new Date(); _rs.setDate(_rs.getDate() + 3); _rs.setHours(0,0,0,0); $('rodStart').value = `${_rs.getFullYear()}-${_p(_rs.getMonth()+1)}-${_p(_rs.getDate())}`; }
 
   // --- Cleanup ---
   return () => {
