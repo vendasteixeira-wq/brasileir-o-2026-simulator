@@ -1,6 +1,7 @@
 import { PL, LG, COMP, FMS, B20, pc, pco, rc, gto, gppda, gts, getStatsOverride, Sim, CH, TPred } from './engine';
 import { monteCarlo } from './predict';
-import { gerarSugestoes } from './loteria';
+import { gerarSugestoes, MODALIDADES } from './loteria';
+import { getFreqTable, fetchCaixaHistory } from './caixaHistory';
 import { roundRobin, predictMatches } from './rodada';
 import { parseCSV, applyImport, clearImport } from './statsImport';
 import { REAL_TABLE } from './realStats';
@@ -425,40 +426,75 @@ export function initBrasileirao(root) {
   $('dbp').addEventListener('change', rDB);
   $('dbs2').addEventListener('change', rDB);
 
-  // --- Loteria (Mega Sena & Quina) ---
+  // --- Loteria (Mega Sena, Quina & Lotofacil) ---
+  function updLotSrc() {
+    const tag = { baseline: 'Baseline', caixa: 'Caixa' };
+    if ($('lotSrc')) {
+      $('lotSrc').textContent = ['mega', 'quina', 'lotofacil']
+        .map(k => MODALIDADES[k].name + ': ' + (tag[getFreqTable(k).source] || 'Baseline')).join(' · ');
+    }
+  }
   function rLot() {
-    const res = gerarSugestoes();
+    const ft = { mega: getFreqTable('mega'), quina: getFreqTable('quina'), lotofacil: getFreqTable('lotofacil') };
+    const res = gerarSugestoes(ft);
+    updLotSrc();
     const ball = (n, big) => `<span class="lb${big ? ' bg' : ''}">${n}</span>`;
     const setHTML = (g, big) => g.nums.map(n => ball(n, big)).join('') + `<span class="lq" style="color:${rc(g.q)}">${g.q}%</span>`;
     const labels = Array.from({ length: 12 }, (_, i) => i === 0 ? 'Jogo 1 (melhor chance)' : 'Jogo ' + (i + 1));
-    const mp = res.prob.mega, qp = res.prob.quina;
     const fmtP = p => p < 1e-4 ? (p * 1e6).toFixed(2) + ' ppm' : (p * 100).toFixed(4) + '%';
-    const ruMega = res.reuso.mega, ruQuina = res.reuso.quina;
     const ruRows = (arr) => arr.map((g, i) => `<div class="lrow"><span class="lrt">Reuso ${i + 1}</span><div class="lballs">${g.nums.map(n => ball(n, false)).join('')}<span class="lq" style="color:${rc(g.q)}">${g.q}%</span></div><span class="lpr">pool ${g.pool}</span></div>`).join('');
-    const megaRows = res.mega.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
-    const quinaRows = res.quina.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
+    const srcTag = s => s === 'caixa' ? '<span style="color:var(--ob)">Caixa</span>' : '<span style="color:var(--mt)">Baseline</span>';
+    const modBlock = (key) => {
+      const mod = MODALIDADES[key];
+      const data = res[key];
+      const rows = data.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
+      const prob = res.prob[key];
+      let probLine;
+      if (key === 'mega') probLine = `Sena: 1 em ${prob.total.toLocaleString('pt-BR')} · Quina: ${fmtP(prob.quina)} · Quadra: ${fmtP(prob.quadra)}`;
+      else if (key === 'quina') probLine = `Quina: 1 em ${prob.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(prob.quadra)} · Terno: ${fmtP(prob.terno)}`;
+      else probLine = `15 pts: 1 em ${prob.total.toLocaleString('pt-BR')} · 14: ${fmtP(prob.faixa14)} · 12: ${fmtP(prob.faixa12)} · 11: ${fmtP(prob.faixa11)}`;
+      return `<div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--${mod.ac})"></i> ${mod.name} (${mod.disc}) — 12 jogos</div>
+      ${rows}
+      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media: <b style="color:var(--ac2)">${data.cov.toFixed(3)}</b> · fonte: ${srcTag(data.source)}</div>
+      <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">${probLine}</div></div>`;
+    };
+    const reuseBlock = (key) => {
+      const mod = MODALIDADES[key];
+      return `<div class="lh2" style="font-size:12px;margin-top:8px"><i class="fas fa-trophy" style="color:var(--${mod.ac})"></i> ${mod.name}</div>${ruRows(res.reuso[key])}`;
+    };
     $('lcon').innerHTML = `
       <div class="lpnl"><div class="lhd"><i class="fas fa-calendar-day"></i> Sugestoes para ${res.date}</div>
-      <div class="ldisc"><i class="fas fa-info-circle"></i> Seed diaria + combinatoria exata + balanceamento (soma, par/impar, decadas) + matriz de covariancia (selecao com baixa correlacao entre jogos). 12 jogos ordenados por maior chance de acerto. Loteria e aleatoria — nao garante premio.</div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena (6 de 60) — 12 jogos</div>
-      ${megaRows}
-      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 12 jogos: <b style="color:var(--ac2)">${res.mega.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
-      <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Sena: 1 em ${mp.total.toLocaleString('pt-BR')} · Quina: ${fmtP(mp.quina)} · Quadra: ${fmtP(mp.quadra)}</div></div>
-      <div class="lpnl"><div class="lh2"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina (5 de 80) — 12 jogos</div>
-      ${quinaRows}
-      <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 12 jogos: <b style="color:var(--ac2)">${res.quina.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
-      <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Quina: 1 em ${qp.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(qp.quadra)} · Terno: ${fmtP(qp.terno)}</div></div>
+      <div class="ldisc"><i class="fas fa-info-circle"></i> Geracao estocastica sobre o historico de 6 anos da Caixa: <b>70% dezenas frias</b> (menos sorteadas) + <b>30% dezenas quentes</b> (mais sorteadas). Seed diaria + combinatoria exata + balanceamento + matriz de covariancia (baixa correlacao entre jogos). 12 jogos por modalidade ordenados por maior chance. Loteria e aleatoria — nao garante premio.</div></div>
+      ${modBlock('mega')}
+      ${modBlock('quina')}
+      ${modBlock('lotofacil')}
       <div class="lpnl"><div class="lh2"><i class="fas fa-recycle" style="color:var(--ob)"></i> Reaproveitamento - 3 apostas reutilizando os numeros dos 12 jogos</div>
-      <div style="font-size:10px;color:var(--mt);line-height:1.5;padding:6px 8px;background:var(--cd2);border-radius:5px;margin-bottom:6px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Numeros sorteados aleatoriamente apenas do pool formado pelos 12 jogos acima (Mega: ${ruMega.length ? ruMega[0].pool : 0} dezenas unicas · Quina: ${ruQuina.length ? ruQuina[0].pool : 0} dezenas unicas).</div>
-      <div class="lh2" style="font-size:12px"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena</div>
-      ${ruRows(ruMega)}
-      <div class="lh2" style="font-size:12px;margin-top:8px"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina</div>
-      ${ruRows(ruQuina)}
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;padding:6px 8px;background:var(--cd2);border-radius:5px;margin-bottom:6px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Numeros sorteados aleatoriamente apenas do pool formado pelos 12 jogos de cada modalidade.</div>
+      ${reuseBlock('mega')}
+      ${reuseBlock('quina')}
+      ${reuseBlock('lotofacil')}
       </div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
-      <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
+      <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${res.prob.mega.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(res.prob.mega.quina)}<br>Quadra: ${fmtP(res.prob.mega.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${res.prob.quina.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(res.prob.quina.quadra)}<br>Terno: ${fmtP(res.prob.quina.terno)}</div></div>
+      <div class="lpt" style="margin-top:6px"><div><b>Lotofacil</b><br>15 pts: 1 / ${res.prob.lotofacil.total.toLocaleString('pt-BR')}<br>14: ${fmtP(res.prob.lotofacil.faixa14)} · 12: ${fmtP(res.prob.lotofacil.faixa12)} · 11: ${fmtP(res.prob.lotofacil.faixa11)}</div></div></div>`;
   }
   $('bLot').addEventListener('click', rLot);
+  $('bCaixa').addEventListener('click', async () => {
+    const btn = $('bCaixa');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+    btn.disabled = true;
+    try {
+      await fetchCaixaHistory();
+      rLot();
+      toast('Historico da Caixa atualizado ao vivo!', 'ok');
+    } catch (e) {
+      toast('Falha na busca Caixa: ' + e.message, 'wr');
+    } finally {
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    }
+  });
 
   // --- Previsoes por rodada (batch Monte Carlo) ---
   let rodIdx = 0;
