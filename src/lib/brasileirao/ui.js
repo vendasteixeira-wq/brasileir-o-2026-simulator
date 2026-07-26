@@ -54,7 +54,7 @@ export function initBrasileirao(root) {
     $('t-' + b.dataset.t).classList.add('on');
     if (b.dataset.t === 'squad') rSq();
     if (b.dataset.t === 'db') rDB();
-    if (b.dataset.t === 'lot') rLot();
+    if (b.dataset.t === 'lot') { rLot(); rFreqChart(); }
     if (b.dataset.t === 'imp') rImp();
     if (b.dataset.t === 'rod') rRod();
     if (b.dataset.t === 'int') rInt();
@@ -69,7 +69,8 @@ export function initBrasileirao(root) {
     cv.height = w.clientHeight * (window.devicePixelRatio || 1);
   }
   rsCV();
-  window.addEventListener('resize', rsCV);
+  const onResize = () => { rsCV(); if (document.querySelector('#freqCV')) rFreqChart(); };
+  window.addEventListener('resize', onResize);
 
   // --- Toast ---
   function toast(msg, type) {
@@ -482,6 +483,63 @@ export function initBrasileirao(root) {
       <div class="lpt" style="margin-top:6px"><div><b>Lotofacil</b><br>15 pts: 1 / ${res.prob.lotofacil.total.toLocaleString('pt-BR')}<br>14: ${fmtP(res.prob.lotofacil.faixa14)} · 12: ${fmtP(res.prob.lotofacil.faixa12)} · 11: ${fmtP(res.prob.lotofacil.faixa11)}</div></div></div>`;
   }
   $('bLot').addEventListener('click', rLot);
+  if ($('freqMod')) $('freqMod').addEventListener('change', rFreqChart);
+
+  // --- Gráfico de frequência dos números (6 anos Caixa) ---
+  function rFreqChart() {
+    const cv = $('freqCV');
+    if (!cv) return;
+    const mod = $('freqMod').value;
+    const ft = getFreqTable(mod);
+    const table = ft.table;
+    const max = Math.max(...table), min = Math.min(...table);
+    $('freqInfo').textContent = `fonte: ${ft.source} · ${table.length} dezenas · máx ${max} · mín ${min}`;
+    const host = cv.parentElement;
+    const cssW = host.clientWidth || 600;
+    const cssH = 280;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = cssW * dpr; cv.height = cssH * dpr;
+    cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    const n = table.length;
+    const padL = 34, padB = 22, padT = 8, padR = 6;
+    const cw = (cssW - padL - padR) / n;
+    const chartH = cssH - padB - padT;
+    ctx.strokeStyle = '#2a3140'; ctx.fillStyle = '#6b7682';
+    ctx.font = '9px Rajdhani, sans-serif'; ctx.textAlign = 'right';
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + chartH * (g / 4);
+      const val = Math.round(max - (max - min) * (g / 4));
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(cssW - padR, y); ctx.stroke();
+      ctx.fillText(String(val), padL - 3, y + 3);
+    }
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const hexRgb = h => { const v = parseInt(h.slice(1), 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+    const cold = hexRgb('#29b6f6'), mid = hexRgb('#ffd400'), hot = hexRgb('#00e676');
+    const colorFor = r => {
+      const pair = r < 0.5 ? [cold, mid, r * 2] : [mid, hot, (r - 0.5) * 2];
+      const [a, b, t] = pair;
+      return `rgb(${lerp(a[0], b[0], t) | 0},${lerp(a[1], b[1], t) | 0},${lerp(a[2], b[2], t) | 0})`;
+    };
+    for (let i = 0; i < n; i++) {
+      const r = max === min ? 0.5 : (table[i] - min) / (max - min);
+      const bh = chartH * (0.08 + 0.92 * r);
+      const x = padL + i * cw;
+      ctx.fillStyle = colorFor(r);
+      ctx.fillRect(x + Math.max(0.5, cw * 0.12), padT + chartH - bh, cw * 0.76, bh);
+    }
+    ctx.fillStyle = '#8a93a0'; ctx.textAlign = 'center'; ctx.font = '8px Rajdhani, sans-serif';
+    const step = n <= 25 ? 1 : n <= 60 ? 2 : 4;
+    for (let i = 0; i < n; i += step) {
+      ctx.fillText(String(i + 1), padL + i * cw + cw / 2, cssH - 6);
+    }
+    const ranked = table.map((f, i) => ({ n: i + 1, f })).sort((a, b) => b.f - a.f);
+    const hot6 = ranked.slice(0, 6), cold6 = ranked.slice(-6).reverse();
+    const chip = (num, f, isHot) => `<span style="display:inline-flex;align-items:center;gap:3px;background:${isHot ? 'rgba(0,230,118,.12)' : 'rgba(41,182,246,.12)'};border:1px solid ${isHot ? 'var(--ac)' : 'var(--ob)'};border-radius:12px;padding:2px 7px;margin:2px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:10px;color:${isHot ? 'var(--ac)' : 'var(--ob)'}">${num} <span style="color:var(--mt);font-weight:400">${f}x</span></span>`;
+    $('freqChips').innerHTML = `<div style="font-size:9px;color:var(--mt);margin-bottom:2px"><i class="fas fa-fire" style="color:var(--ac)"></i> Mais sorteadas (quentes)</div>${hot6.map(x => chip(x.n, x.f, true)).join('')}<div style="font-size:9px;color:var(--mt);margin:6px 0 2px"><i class="fas fa-snowflake" style="color:var(--ob)"></i> Menos sorteadas (frias)</div>${cold6.map(x => chip(x.n, x.f, false)).join('')}`;
+  }
   $('bCaixa').addEventListener('click', async () => {
     const btn = $('bCaixa');
     const orig = btn.innerHTML;
@@ -808,6 +866,6 @@ export function initBrasileirao(root) {
   return () => {
     cancelAnimationFrame(rafId);
     document.body.classList.remove('br-page');
-    window.removeEventListener('resize', rsCV);
+    window.removeEventListener('resize', onResize);
   };
 }
