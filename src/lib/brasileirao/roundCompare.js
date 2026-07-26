@@ -122,6 +122,29 @@ function render(container, real, rows) {
     <div style="font-size:9px;color:var(--mt)">Previsto <b style="color:var(--oo)">${w.p.score}</b> (fav <b>${w.p.fav}</b>) · Real <b style="color:var(--ac)">${w.rh}-${w.ra}</b> · erro placar ${w.scoreErr}</div>
   </div>`).join('');
 
+  // Agregacao por time: gols previstos vs reais e diferenca percentual
+  const teamMap = {};
+  rows.forEach(r => {
+    if (!teamMap[r.m.home]) teamMap[r.m.home] = { name: r.m.home, pred: 0, real: 0 };
+    if (!teamMap[r.m.away]) teamMap[r.m.away] = { name: r.m.away, pred: 0, real: 0 };
+    teamMap[r.m.home].pred += r.ph; teamMap[r.m.home].real += r.rh;
+    teamMap[r.m.away].pred += r.pa; teamMap[r.m.away].real += r.ra;
+  });
+  const teams = Object.values(teamMap).map(t => {
+    const diffPct = t.real > 0 ? (t.pred - t.real) / t.real * 100 : (t.pred > 0 ? 100 : 0);
+    return { ...t, diffPct: +diffPct.toFixed(0), absDiff: Math.abs(diffPct) };
+  }).sort((a, b) => b.absDiff - a.absDiff);
+  const maxG = Math.max(1, ...teams.map(t => Math.max(t.pred, t.real)));
+  const diffCol = d => d.absDiff < 15 ? 'var(--ac)' : d.absDiff < 35 ? 'var(--ac2)' : 'var(--dn)';
+  const teamBars = teams.map(t => `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+    <span style="width:84px;font-size:9px;color:var(--mt);font-family:Rajdhani,sans-serif;font-weight:700;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.name}">${t.name}</span>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:4px"><div style="height:7px;background:var(--oo);border-radius:3px;width:${(t.pred/maxG*100)}%"></div><span style="font-size:8px;color:var(--mt)">${t.pred}</span></div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:1px"><div style="height:7px;background:var(--ac);border-radius:3px;width:${(t.real/maxG*100)}%"></div><span style="font-size:8px;color:var(--mt)">${t.real}</span></div>
+    </div>
+    <span style="width:54px;font-size:10px;font-family:Rajdhani,sans-serif;font-weight:700;color:${diffCol(t)};text-align:right">${t.diffPct > 0 ? '+' : ''}${t.diffPct}%</span>
+  </div>`).join('');
+
   out.innerHTML = `
     <div class="pnl" style="padding:8px;margin-top:6px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-table"></i> Tabela comparativa — Rodada ${real.round || ''} (${n} jogos finalizados)</div>
       <div style="overflow-x:auto"><table class="gt2" style="width:100%"><tr><th style="text-align:left">Partida</th><th>Prev.</th><th>V/E/D %</th><th>Real</th><th>Resultou</th><th>Acerto</th><th>Erro</th></tr>${tableRows}</table></div>
@@ -140,6 +163,12 @@ function render(container, real, rows) {
           ${wRow('Escala de gols (goalScale)', c.goalScale, recGoals, 'Multiplica lambdaH/lambdaA')}
         </div>
       </div>
+    </div>
+    <div class="pnl" style="padding:8px;margin-top:6px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-chart-bar"></i> Diferença % Gols Previstos vs Reais por Time</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;margin-bottom:8px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> <span style="color:var(--oo)">■</span> gols previstos pela IA · <span style="color:var(--ac)">■</span> gols reais · Diferença % = (previsto − real)/real. Ordenado por maior erro — times no topo têm <b>menor precisão</b>.</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-left:90px"><span style="flex:1;font-size:9px;color:var(--oo);font-family:Rajdhani,sans-serif;font-weight:700">Previsto</span><span style="width:54px"></span></div>
+      ${teamBars}
+      <div style="font-size:9px;color:var(--mt);margin-top:6px;border-top:1px solid var(--bd);padding-top:5px"><i class="fas fa-info-circle"></i> Verde = |dif| &lt; 15% (preciso) · Amarelo = 15–35% · Vermelho = &gt; 35% (menor precisão).</div>
     </div>`;
 }
 
