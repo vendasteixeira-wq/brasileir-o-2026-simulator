@@ -160,6 +160,75 @@ export function initBrasileirao(root) {
     }
   }
 
+  // --- Realidade da partida em tempo real (nao interfere na previsao do motor) ---
+  async function rReality() {
+    const h = $('ht').value, a = $('at').value;
+    if (h === a) { toast('Selecione times diferentes!', 'wr'); return; }
+    const box = $('rpnl');
+    box.innerHTML = '<div class="ild">Buscando situacao real atual: tabela, forma, confronto direto...</div>';
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Você é um analista de futebol do Brasileirão Série A 2026. Para a partida ${h} (mandante) vs ${a} (visitante), traga a SITUAÇÃO REAL E ATUAL dos clubes em JSON: { "posH": posição atual do ${h} na tabela (ex: "4º"), "posA": posição atual do ${a}, "ptsH": pontos do ${h}, "ptsA": pontos do ${a}, "formH": últimos 5 jogos do ${h} (sequência de V/E/D), "formA": últimos 5 jogos do ${a}, "h2h": últimos 3 confrontos diretos resumidos, "oddH": odd decimal para vitória do ${h}, "oddD": odd decimal para empate, "oddA": odd decimal para vitória do ${a}, "realScore": placar mais provável segundo a realidade atual (ex: "2-1"), "realFav": quem é o favorito na realidade (${h}, ${a} ou Empate), "news": notícia relevante recente (lesões, suspensões ou motivação) em uma linha }. Use dados reais e atuais da internet.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            posH: { type: 'string' }, posA: { type: 'string' },
+            ptsH: { type: 'number' }, ptsA: { type: 'number' },
+            formH: { type: 'string' }, formA: { type: 'string' },
+            h2h: { type: 'string' },
+            oddH: { type: 'number' }, oddD: { type: 'number' }, oddA: { type: 'number' },
+            realScore: { type: 'string' }, realFav: { type: 'string' }, news: { type: 'string' }
+          }
+        }
+      });
+      const d = typeof res === 'string' ? JSON.parse(res) : res;
+      const fChips = (s) => (s || '').split('').map(c => {
+        const col = c === 'V' ? 'var(--ac)' : c === 'E' ? 'var(--ac2)' : 'var(--dn)';
+        return `<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:${col};color:#0b1016;font-weight:700;font-size:9px;font-family:Rajdhani,sans-serif;margin:0 1px">${c}</span>`;
+      }).join('');
+      const oddBar = (oh, od, oa) => {
+        const total = oh + od + oa || 1;
+        const ph = oa / total * 100, pd = od / total * 100, pa = oh / total * 100;
+        return `<div class="bw" style="margin:4px 0"><div class="bf hh" style="width:${ph}%;background:var(--hm)"></div><div class="bf" style="width:${pd}%;background:var(--ac2)"></div><div class="bf aa" style="width:${pa}%;background:var(--aw)"></div></div>`;
+      };
+      const favCol = d.realFav === h ? 'var(--hm)' : d.realFav === a ? 'var(--aw)' : 'var(--ac2)';
+      box.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <div style="background:var(--cd2);border-radius:6px;padding:6px;border-left:3px solid var(--hm)">
+            <div style="font-weight:700;color:var(--hm);font-family:Rajdhani,sans-serif;font-size:12px">${h}</div>
+            <div style="font-size:9px;color:var(--mt)">Tabela: <b style="color:var(--ac)">${d.posH || '-'}</b> · ${d.ptsH != null ? d.ptsH + ' pts' : ''}</div>
+            <div style="margin-top:3px">Forma: ${fChips(d.formH)}</div>
+          </div>
+          <div style="background:var(--cd2);border-radius:6px;padding:6px;border-left:3px solid var(--aw)">
+            <div style="font-weight:700;color:var(--aw);font-family:Rajdhani,sans-serif;font-size:12px">${a}</div>
+            <div style="font-size:9px;color:var(--mt)">Tabela: <b style="color:var(--ac)">${d.posA || '-'}</b> · ${d.ptsA != null ? d.ptsA + ' pts' : ''}</div>
+            <div style="margin-top:3px">Forma: ${fChips(d.formA)}</div>
+          </div>
+        </div>
+        <div style="background:var(--cd2);border-radius:6px;padding:6px;margin-bottom:6px">
+          <div style="font-size:9px;color:var(--mt);margin-bottom:2px"><i class="fas fa-history"></i> Confronto direto (últimos 3)</div>
+          <div style="font-size:10px;line-height:1.4">${d.h2h || '-'}</div>
+        </div>
+        <div style="background:var(--cd2);border-radius:6px;padding:6px;margin-bottom:6px">
+          <div style="font-size:9px;color:var(--mt);margin-bottom:2px"><i class="fas fa-chart-line"></i> Odds reais (mercado)</div>
+          ${oddBar(d.oddH || 2, d.oddD || 3, d.oddA || 2)}
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--mt);font-family:Rajdhani,sans-serif;font-weight:700"><span style="color:var(--hm)">${h} ${d.oddH || '-'}</span><span style="color:var(--ac2)">Empate ${d.oddD || '-'}</span><span style="color:var(--aw)">${a} ${d.oddA || '-'}</span></div>
+        </div>
+        <div style="background:var(--cd2);border-radius:6px;padding:6px;border-left:3px solid ${favCol}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:var(--mt)">Realidade sugere:</span>
+            <span style="font-family:Rajdhani,sans-serif;font-weight:700;font-size:14px;color:var(--oo)">${d.realScore || '-'}</span>
+          </div>
+          <div style="font-size:10px;color:${favCol};font-family:Rajdhani,sans-serif;font-weight:700;margin-top:2px">Favorito real: ${d.realFav || '-'}</div>
+          ${d.news ? `<div style="font-size:9px;color:var(--mt);line-height:1.4;margin-top:4px;border-top:1px solid var(--bd);padding-top:4px"><i class="fas fa-newspaper" style="color:var(--ob)"></i> ${d.news}</div>` : ''}
+        </div>
+        <div style="font-size:8px;color:var(--mt);text-align:center;margin-top:4px"><i class="fas fa-info-circle"></i> Contexto real apenas — a previsão do motor está no painel Probabilidades (Monte Carlo).</div>`;
+    } catch (e) {
+      box.innerHTML = '<div class="ild" style="color:var(--dn)">Falha ao buscar realidade. Tente novamente.</div>';
+    }
+  }
+
   // --- Team indicators ---
   const tind = $('tind');
   function rTInd() {
@@ -190,11 +259,12 @@ export function initBrasileirao(root) {
   }
 
   // --- Match controls ---
-  $('ht').addEventListener('change', () => { rTInd(); rMC(); });
-  $('at').addEventListener('change', () => { rTInd(); rMC(); });
+  $('ht').addEventListener('change', () => { rTInd(); rMC(); if ($('rpnl')) $('rpnl').innerHTML = ''; });
+  $('at').addEventListener('change', () => { rTInd(); rMC(); if ($('rpnl')) $('rpnl').innerHTML = ''; });
 
   $('bI').addEventListener('click', rIntel);
   $('bInt').addEventListener('click', rIntel);
+  $('bReal').addEventListener('click', rReality);
 
   $('bS').addEventListener('click', () => {
     if (SIM && SIM.run) return;
