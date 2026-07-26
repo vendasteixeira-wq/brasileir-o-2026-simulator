@@ -156,6 +156,31 @@ function genTopGames(range, count, baseSeed, nCandidates, nPick) {
   return picked;
 }
 
+// 3 apostas aleatorias que reutilizam (reaproveitam) apenas os numeros ja sorteados nos 12 jogos
+function shufflePool(arr, rng) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export function gerarReuso(games, count, range, seed) {
+  const pool = [...new Set(games.flatMap(g => g.nums))].sort((a, b) => a - b);
+  if (pool.length < count) return [];
+  const rng = mulberry32(seed);
+  const bets = [];
+  const seen = new Set();
+  let guard = 0;
+  while (bets.length < 3 && guard++ < 200) {
+    const picked = shufflePool(pool, rng).slice(0, count).sort((a, b) => a - b);
+    const key = picked.join(',');
+    if (!seen.has(key)) { seen.add(key); bets.push({ nums: picked, q: quality(picked, range), pool: pool.length }); }
+  }
+  return bets;
+}
+
 export function gerarSugestoes() {
   const seed = dateSeed();
   const megaGames = genTopGames(60, 6, seed, 400, 12);
@@ -164,6 +189,7 @@ export function gerarSugestoes() {
     date: new Date().toLocaleDateString('pt-BR'),
     mega: { games: megaGames, cov: avgCovariance(megaGames, 60) },
     quina: { games: quinaGames, cov: avgCovariance(quinaGames, 80) },
+    reuso: { mega: gerarReuso(megaGames, 6, 60, seed + 200), quina: gerarReuso(quinaGames, 5, 80, seed + 300) },
     prob: { mega: megaProb(), quina: quinaProb() }
   };
 }

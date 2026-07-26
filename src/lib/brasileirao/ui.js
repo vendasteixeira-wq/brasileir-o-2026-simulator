@@ -433,6 +433,8 @@ export function initBrasileirao(root) {
     const labels = Array.from({ length: 12 }, (_, i) => i === 0 ? 'Jogo 1 (melhor chance)' : 'Jogo ' + (i + 1));
     const mp = res.prob.mega, qp = res.prob.quina;
     const fmtP = p => p < 1e-4 ? (p * 1e6).toFixed(2) + ' ppm' : (p * 100).toFixed(4) + '%';
+    const ruMega = res.reuso.mega, ruQuina = res.reuso.quina;
+    const ruRows = (arr) => arr.map((g, i) => `<div class="lrow"><span class="lrt">Reuso ${i + 1}</span><div class="lballs">${g.nums.map(n => ball(n, false)).join('')}<span class="lq" style="color:${rc(g.q)}">${g.q}%</span></div><span class="lpr">pool ${g.pool}</span></div>`).join('');
     const megaRows = res.mega.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
     const quinaRows = res.quina.games.map((g, i) => `<div class="lrow"><span class="lrt">${labels[i]}</span><div class="lballs">${setHTML(g, i === 0)}</div><span class="lpr">chance ${g.q}%</span></div>`).join('');
     $('lcon').innerHTML = `
@@ -446,6 +448,13 @@ export function initBrasileirao(root) {
       ${quinaRows}
       <div class="lrow" style="border:none;color:var(--ob);font-size:9px"><i class="fas fa-link"></i> Covariancia media entre os 12 jogos: <b style="color:var(--ac2)">${res.quina.cov.toFixed(3)}</b> · prox. de 0 = cobertura independente (menor sobreposicao de dezenas)</div>
       <div class="lrow" style="border:none;color:var(--mt);font-size:9px;padding-top:4px">Quina: 1 em ${qp.total.toLocaleString('pt-BR')} · Quadra: ${fmtP(qp.quadra)} · Terno: ${fmtP(qp.terno)}</div></div>
+      <div class="lpnl"><div class="lh2"><i class="fas fa-recycle" style="color:var(--ob)"></i> Reaproveitamento - 3 apostas reutilizando os numeros dos 12 jogos</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;padding:6px 8px;background:var(--cd2);border-radius:5px;margin-bottom:6px"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Numeros sorteados aleatoriamente apenas do pool formado pelos 12 jogos acima (Mega: ${ruMega.length ? ruMega[0].pool : 0} dezenas unicas · Quina: ${ruQuina.length ? ruQuina[0].pool : 0} dezenas unicas).</div>
+      <div class="lh2" style="font-size:12px"><i class="fas fa-trophy" style="color:var(--ac2)"></i> Mega Sena</div>
+      ${ruRows(ruMega)}
+      <div class="lh2" style="font-size:12px;margin-top:8px"><i class="fas fa-trophy" style="color:var(--ac)"></i> Quina</div>
+      ${ruRows(ruQuina)}
+      </div>
       <div class="lpnl"><div class="lh2"><i class="fas fa-calculator"></i> Probabilidades Exatas</div>
       <div class="lpt"><div><b>Mega Sena</b><br>Sena: 1 / ${mp.total.toLocaleString('pt-BR')}<br>Quina: ${fmtP(mp.quina)}<br>Quadra: ${fmtP(mp.quadra)}</div><div><b>Quina</b><br>Quina: 1 / ${qp.total.toLocaleString('pt-BR')}<br>Quadra: ${fmtP(qp.quadra)}<br>Terno: ${fmtP(qp.terno)}</div></div></div>`;
   }
