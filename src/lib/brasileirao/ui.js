@@ -13,6 +13,7 @@ import { exportAllCSV } from './export';
 import { base44 } from '@/api/base44Client';
 import { renderPanel } from './panel';
 import { fetchRealRound, assignDates, renderRealRound } from './realRound';
+import { renderCoachPanel } from './coachPanel';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -66,6 +67,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'int') rInt();
     if (b.dataset.t === 'stat') rStat();
     if (b.dataset.t === 'ctrl') rCtrl();
+    if (b.dataset.t === 'coach') renderCoachPanel($('coachCon'));
   }));
 
   // --- Canvas ---

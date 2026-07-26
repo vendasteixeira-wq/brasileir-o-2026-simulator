@@ -4,7 +4,7 @@ import { initBrasileirao } from '@/lib/brasileirao/ui';
 
 const HTML = `<div class="br-app">
 <header class="hdr"><div class="logo"><i class="fas fa-futbol"></i><h1>BRASILEIRAO 2026 - SIMULADOR OPTA</h1></div><div class="bdg"><i class="fas fa-chart-line"></i> 20 CLUBES</div></header>
-<nav id="nav"><button class="on" data-t="match"><i class="fas fa-play-circle"></i>Partida</button><button data-t="squad"><i class="fas fa-users"></i>Elenco UT</button><button data-t="tourn"><i class="fas fa-trophy"></i>Previsoes</button><button data-t="db"><i class="fas fa-database"></i>Dados</button><button data-t="imp"><i class="fas fa-file-import"></i>Importar</button><button data-t="lot"><i class="fas fa-coins"></i>Loteria</button><button data-t="rod"><i class="fas fa-calendar-check"></i>Rodada</button><button data-t="int"><i class="fas fa-brain"></i>Intuição</button><button data-t="stat"><i class="fas fa-square-root-alt"></i>Estatistica</button><button data-t="ctrl"><i class="fas fa-chart-pie"></i>Controle</button></nav>
+<nav id="nav"><button class="on" data-t="match"><i class="fas fa-play-circle"></i>Partida</button><button data-t="squad"><i class="fas fa-users"></i>Elenco UT</button><button data-t="tourn"><i class="fas fa-trophy"></i>Previsoes</button><button data-t="db"><i class="fas fa-database"></i>Dados</button><button data-t="imp"><i class="fas fa-file-import"></i>Importar</button><button data-t="lot"><i class="fas fa-coins"></i>Loteria</button><button data-t="rod"><i class="fas fa-calendar-check"></i>Rodada</button><button data-t="int"><i class="fas fa-brain"></i>Intuição</button><button data-t="stat"><i class="fas fa-square-root-alt"></i>Estatistica</button><button data-t="ctrl"><i class="fas fa-chart-pie"></i>Controle</button><button data-t="coach"><i class="fas fa-chalkboard-teacher"></i>Técnicos</button></nav>
 <div class="tc on" id="t-match"><div class="ml"><div>
 <div class="pnl" style="padding:8px"><div class="ts"><label>Casa:</label><select id="ht"></select><label>Fora:</label><select id="at"></select></div></div>
 <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-chart-line"></i>Indicadores EA/Opta</div><div id="tind"></div></div>
@@ -22,6 +22,7 @@ const HTML = `<div class="br-app">
 <div class="tc" id="t-stat"><div id="statCon" style="padding:4px"></div></div>
 <div class="tc" id="t-int"><div id="intCon" style="padding:4px"></div></div>
 <div class="tc" id="t-ctrl"><div id="ctrlCon" style="padding:4px"></div></div>
+<div class="tc" id="t-coach"><div id="coachCon" style="padding:4px"></div></div>
 <div class="mo" id="slmod"><div class="md"><button class="mx" id="mcls"><i class="fas fa-times"></i></button><h3 id="mttl">Selecionar</h3><input class="psr" id="msrc" placeholder="Filtrar..." style="width:100%;margin-bottom:6px"><div class="mp" id="mpl"></div></div></div>
 <div class="tc2" id="tsts"></div>
 </div>`;
