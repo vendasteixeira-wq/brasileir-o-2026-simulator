@@ -9,6 +9,7 @@ import { descriptive, pearson, linearRegression, anova, welchTTest } from './sta
 import { runCalibration, getMetrics, clearHistory, getHistory } from './learning';
 import { getCorrections } from './corrections';
 import { requestNotifyPermission, notifyRoundFinished, notifyPermission } from './notify';
+import { exportAllCSV } from './export';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -709,6 +710,7 @@ export function initBrasileirao(root) {
         <button id="bRel" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-medical-alt"></i> Relatório</button>
         <button id="bHeat" style="padding:6px 12px;background:rgba(255,120,40,.1);border:1px solid #ff7820;color:#ff9b4d;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-fire"></i> Mapa de Calor</button>
         <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
+        <button id="bExp" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-csv"></i> Exportar CSV</button>
       </div>
       <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
       <div id="intAI" style="margin-top:6px"></div>
@@ -724,6 +726,14 @@ export function initBrasileirao(root) {
     $('bRel').onclick = rIntRelatorio;
     $('bHeat').onclick = rHeat;
     $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
+    $('bExp').onclick = async () => {
+      toast('Exportando histórico...', 'ok');
+      try {
+        const r = await exportAllCSV();
+        if (!r.sim && !r.lot) toast('Nenhum dado para exportar (rode calibração e busque a loteria).', 'wr');
+        else toast('Exportado: ' + (r.sim ? 'simulações ' : '') + (r.lot ? 'loteria ' : '') + '→ CSV', 'ok');
+      } catch (e) { toast('Falha na exportação: ' + e.message, 'wr'); }
+    };
     rHeat();
   }
   async function rIntAI() {
