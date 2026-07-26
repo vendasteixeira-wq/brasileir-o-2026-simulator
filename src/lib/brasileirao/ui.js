@@ -431,7 +431,7 @@ export function initBrasileirao(root) {
 
   // --- Loteria (Mega Sena, Quina & Lotofacil) ---
   function updLotSrc() {
-    const tag = { baseline: 'Baseline', caixa: 'Caixa' };
+    const tag = { baseline: 'Baseline', caixa: 'Caixa', 'caixa-db': 'Caixa DB' };
     if ($('lotSrc')) {
       $('lotSrc').textContent = ['mega', 'quina', 'lotofacil']
         .map(k => MODALIDADES[k].name + ': ' + (tag[getFreqTable(k).source] || 'Baseline')).join(' · ');
