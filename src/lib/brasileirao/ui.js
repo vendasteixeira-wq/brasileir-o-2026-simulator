@@ -208,6 +208,32 @@ export function initBrasileirao(root) {
     $('bSp').innerHTML = '<i class="fas fa-forward"></i> ' + speeds[si] + 'x';
   });
 
+  $('bCal').addEventListener('click', async () => {
+    if (!SIM) { toast('Simule uma partida primeiro (Iniciar ou Rapido)!', 'wr'); return; }
+    const dt = $('calDT').value;
+    if (!dt) { toast('Selecione data e hora', 'wr'); return; }
+    const startISO = new Date(dt).toISOString();
+    const msg = $('calMsg');
+    msg.innerHTML = '<span style="color:var(--ob)"><i class="fas fa-spinner fa-spin"></i> Agendando no Google Calendar...</span>';
+    try {
+      const r = await base44.functions.invoke('scheduleMatch', {
+        home: SIM.hc, away: SIM.ac,
+        scoreH: SIM.sc2.h, scoreA: SIM.sc2.a,
+        xgH: +SIM.xg.h.toFixed(2), xgA: +SIM.xg.a.toFixed(2),
+        startISO
+      });
+      const data = r.data || r;
+      if (data && data.ok) {
+        msg.innerHTML = `<a href="${data.htmlLink}" target="_blank" style="color:var(--ac)"><i class="fas fa-check-circle"></i> Evento criado - abrir no Calendar</a>`;
+        toast('Partida agendada no Google Calendar!', 'ok');
+      } else {
+        msg.innerHTML = `<span style="color:var(--dn)"><i class="fas fa-exclamation-circle"></i> ${(data && data.error) || 'Erro ao agendar'}</span>`;
+      }
+    } catch (e) {
+      msg.innerHTML = `<span style="color:var(--dn)">Falha: ${e.message}</span>`;
+    }
+  });
+
   // --- Game loop ---
   function loop(t) {
     if (SIM && SIM.run) {
@@ -559,6 +585,9 @@ export function initBrasileirao(root) {
   popLF();
   rTInd();
   rMC();
+  const _d = new Date(); _d.setDate(_d.getDate() + 1); _d.setHours(20, 0, 0, 0);
+  const _p = n => String(n).padStart(2, '0');
+  $('calDT').value = `${_d.getFullYear()}-${_p(_d.getMonth() + 1)}-${_p(_d.getDate())}T${_p(_d.getHours())}:${_p(_d.getMinutes())}`;
 
   // --- Cleanup ---
   return () => {
