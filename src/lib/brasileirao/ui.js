@@ -1,4 +1,4 @@
-import { PL, LG, COMP, FMS, B20, pc, pco, rc, gto, gppda, gts, getStatsOverride, Sim, CH, TPred } from './engine';
+import { PL, LG, COMP, FMS, B20, pc, pco, rc, gto, gppda, gts, gtp, getStatsOverride, Sim, CH, TPred } from './engine';
 import { monteCarlo } from './predict';
 import { gerarSugestoes, MODALIDADES } from './loteria';
 import { getFreqTable, fetchCaixaHistory } from './caixaHistory';
@@ -6,6 +6,8 @@ import { roundRobin, predictMatches } from './rodada';
 import { parseCSV, applyImport, clearImport } from './statsImport';
 import { REAL_TABLE } from './realStats';
 import { descriptive, pearson, linearRegression, anova, welchTTest } from './statEngine';
+import { runCalibration, getMetrics, clearHistory } from './learning';
+import { getCorrections } from './corrections';
 import { base44 } from '@/api/base44Client';
 
 export function initBrasileirao(root) {
@@ -55,6 +57,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'lot') rLot();
     if (b.dataset.t === 'imp') rImp();
     if (b.dataset.t === 'rod') rRod();
+    if (b.dataset.t === 'int') rInt();
     if (b.dataset.t === 'stat') rStat();
   }));
 
@@ -595,6 +598,67 @@ export function initBrasileirao(root) {
       <div class="pnl" style="padding:8px"><div style="font-size:10px;color:var(--mt);line-height:1.5"><i class="fas fa-info-circle" style="color:var(--ob)"></i> Motor estatistico open-source em JS puro (algoritmos de dominio publico): lgamma (Lanczos), beta incompleta regularizada (Numerical Recipes), distribuicoes t e F, OLS, ANOVA, Pearson/Spearman. Equivalentes em metodo ao R / PSPP / jamovi / Minitab — nenhum binario ou codigo privado utilizado.</div></div>`;
     if ($('regVar')) $('regVar').addEventListener('change', rStat);
     if ($('aVar')) $('aVar').addEventListener('change', rStat);
+  }
+
+  // --- Intuição & Aprendizado ---
+  function metricsHTML(m, c) {
+    const row = (l, a, b, good) => `<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--bd)"><span style="color:var(--mt)">${l}</span><span style="font-family:Rajdhani,sans-serif;font-weight:700;color:${good ? 'var(--ac)' : 'var(--oo)'}">${a} vs ${b}</span></div>`;
+    return `<div style="font-size:11px;line-height:1.7;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--mt)">Partidas avaliadas</span><b style="font-family:Rajdhani">${m.n}</b></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--mt)">Acerto do favorito</span><b style="font-family:Rajdhani;color:var(--ac2)">${m.accuracy}%</b></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--mt)">Brier score (menor=melhor)</span><b style="font-family:Rajdhani;color:var(--ob)">${m.brier}</b></div>
+      ${row('Vitória casa (%)', m.predHomeRate, m.actHomeRate, Math.abs(m.predHomeRate - m.actHomeRate) < 5)}
+      ${row('Empates (%)', m.predDrawRate, m.actDrawRate, Math.abs(m.predDrawRate - m.actDrawRate) < 5)}
+      ${row('Gols/jogo', m.predGoals, m.actGoals, Math.abs(m.predGoals - m.actGoals) < 0.4)}
+      </div>
+      <div class="pt" style="border:none;margin:6px 0 4px"><i class="fas fa-wrench"></i> Correções aprendidas (aplicadas nas próximas previsões)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;font-size:10px">
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Mando de campo</div><b style="font-family:Rajdhani;color:var(--ac2)">${c.homeAdv}</b></div>
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Viés empate</div><b style="font-family:Rajdhani;color:var(--ac2)">${c.drawBias}</b></div>
+        <div style="background:var(--cd2);padding:6px;border-radius:5px"><div style="color:var(--mt)">Escala gols</div><b style="font-family:Rajdhani;color:var(--ac2)">${c.goalScale}</b></div>
+      </div>`;
+  }
+  function rInt() {
+    const m = getMetrics();
+    const c = getCorrections();
+    $('intCon').innerHTML = `
+      <div class="pnl" style="padding:8px"><div class="pt"><i class="fas fa-brain"></i> Intuição & Aprendizado — calibração do motor de previsão</div>
+      <div style="font-size:10px;color:var(--mt);line-height:1.5;margin-bottom:6px">Compara as probabilidades previstas (Monte Carlo + Elo + Dixon-Coles) com os resultados simulados das mesmas partidas, calcula acerto/Brier/viés e aprende correções (mando de campo, empate, gols) que passam a ser aplicadas nas próximas previsões.</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+        <button id="bCalib" style="padding:6px 12px;background:rgba(0,230,118,.1);border:1px solid var(--ac);color:var(--ac);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-bolt"></i> Calibrar (10 partidas)</button>
+        <button id="bIntAI" style="padding:6px 12px;background:rgba(99,102,241,.12);border:1px solid #6366f1;color:#818cf8;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-robot"></i> Intuição IA</button>
+        <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
+      </div>
+      <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
+      <div id="intAI" style="margin-top:6px"></div>
+      </div>`;
+    $('bCalib').onclick = () => {
+      const ms = roundRobin(B20).flat().slice(0, 10);
+      const r = runCalibration(ms);
+      rInt();
+      toast('Calibração: ' + r.metrics.n + ' partidas · acerto ' + r.metrics.accuracy + '%', 'ok');
+    };
+    $('bIntAI').onclick = rIntAI;
+    $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
+  }
+  async function rIntAI() {
+    const h = $('ht').value, a = $('at').value;
+    const box = $('intAI');
+    box.innerHTML = '<div class="ild">Gerando intuição com IA...</div>';
+    const hs = gts(h), as = gts(a);
+    const hp = gtp(h).sort((x, y) => y.ovr - x.ovr).slice(0, 11).map(p => `${p.name}(${p.pos} OVR${p.ovr} xG${p.xG90} xA${p.xA90} pas${p.passComp} drib${p.duelWin})`).join('; ');
+    const ap = gtp(a).sort((x, y) => y.ovr - x.ovr).slice(0, 11).map(p => `${p.name}(${p.pos} OVR${p.ovr})`).join('; ');
+    const c = getCorrections();
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Você é um analista tático de futebol. Para ${h} (mandante) vs ${a} (visitante) no Brasileirão 2026, desenvolva uma "intuição" analítica baseada em dados. Estatísticas do ${h}: OVR ${hs.ovr}, ataque ${hs.atk}, meio ${hs.mid}, defesa ${hs.def}, goleiro ${hs.gk}, xG ${hs.xG}, xA ${hs.xA}, passe ${hs.pas}%, PPDA ${hs.ppda}. Estatísticas do ${a}: OVR ${as.ovr}, ataque ${as.atk}, defesa ${as.def}, goleiro ${as.gk}, xG ${as.xG}. Titulares ${h}: ${hp}. Titulares ${a}: ${ap}. Correções aprendidas do motor: mando ${c.homeAdv}, viés empate ${c.drawBias}, escala gols ${c.goalScale}. Analise de forma concisa e direta: (1) quem deveria iniciar vs reservas; (2) avaliação de goleiros e lideranças; (3) fatores táticos — passes certos/errados, construção/saída de bola, alas esquerdo/direito, velocidade, cabeceios, cruzamentos, faltas, escanteios, dribles, defesa de meio e de área; (4) arbitragem/VAR/penalidades como fator de risco; (5) viés detectado no motor e como a intuição o corrige.`,
+        add_context_from_internet: true
+      });
+      const txt = typeof res === 'string' ? res : JSON.stringify(res);
+      box.innerHTML = `<div class="pnl" style="padding:8px;background:var(--cd2)"><div class="pt" style="border:none;margin:0 0 4px"><i class="fas fa-robot"></i> Relatório de Intuição — ${h} x ${a}</div><div style="font-size:11px;line-height:1.6;white-space:pre-wrap">${txt}</div></div>`;
+    } catch (e) {
+      box.innerHTML = '<div style="color:var(--dn);font-size:11px">Falha: ' + e.message + '</div>';
+    }
   }
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---

@@ -1,5 +1,6 @@
 // Modulo de previsao avancada: Elo + Dixon-Coles (Poisson Bivariado) + Monte Carlo
 import { gts } from './engine';
+import { getCorrections } from './corrections';
 
 // === Elo: rating dinamico derivado do OVR do elenco ===
 export function eloRating(ovr) {
@@ -28,7 +29,8 @@ export function teamStrength(team) {
 
 // === Dixon-Coles: Poisson Bivariado com correcao de baixo placar ===
 // Modela correlacao entre os times (0-0 e 1-1 sao mais comuns que Poisson puro prevê)
-export function dixonColesLambda(home, away, homeAdv = 0.18) {
+export function dixonColesLambda(home, away, homeAdv) {
+  if (homeAdv === undefined) homeAdv = getCorrections().homeAdv;
   const h = teamStrength(home), a = teamStrength(away);
   const lambdaH = h.atk * a.def * (1 + homeAdv);
   const lambdaA = a.atk * h.def * (1 - homeAdv * 0.4);
@@ -73,8 +75,14 @@ function sampleGrid(grid) {
 
 // === Monte Carlo: roda a partida N vezes, retorna distribuicao de resultados ===
 export function monteCarlo(home, away, n = 3000) {
+  const corr = getCorrections();
   const { lambdaH, lambdaA } = dixonColesLambda(home, away);
-  const grid = dixonColesGrid(lambdaH, lambdaA);
+  const grid = dixonColesGrid(lambdaH * corr.goalScale, lambdaA * corr.goalScale);
+  if (corr.drawBias !== 1) {
+    let t = 0;
+    grid.forEach(g => { if (g.h === g.a) g.prob *= corr.drawBias; t += g.prob; });
+    grid.forEach(g => g.prob /= t);
+  }
   const counts = { win: 0, draw: 0, loss: 0 };
   const scoreFreq = {};
   for (let i = 0; i < n; i++) {
