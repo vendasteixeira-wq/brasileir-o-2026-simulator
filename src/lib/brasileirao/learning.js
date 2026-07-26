@@ -34,7 +34,8 @@ export function runCalibration(matchups) {
     recs.push({
       h, a,
       pred: { win: pred.win, draw: pred.draw, loss: pred.loss, xgH: pred.xgH, xgA: pred.xgA },
-      act: { h: act.h, a: act.a, outcome }
+      act: { h: act.h, a: act.a, outcome },
+      ts: Date.now()
     });
   }
   const all = loadHist().concat(recs);

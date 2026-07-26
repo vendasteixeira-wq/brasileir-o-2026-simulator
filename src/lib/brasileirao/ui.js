@@ -11,6 +11,7 @@ import { getCorrections } from './corrections';
 import { requestNotifyPermission, notifyRoundFinished, notifyPermission } from './notify';
 import { exportAllCSV } from './export';
 import { base44 } from '@/api/base44Client';
+import { renderPanel } from './panel';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -63,6 +64,7 @@ export function initBrasileirao(root) {
     if (b.dataset.t === 'rod') rRod();
     if (b.dataset.t === 'int') rInt();
     if (b.dataset.t === 'stat') rStat();
+    if (b.dataset.t === 'ctrl') rCtrl();
   }));
 
   // --- Canvas ---
@@ -73,7 +75,7 @@ export function initBrasileirao(root) {
     cv.height = w.clientHeight * (window.devicePixelRatio || 1);
   }
   rsCV();
-  const onResize = () => { rsCV(); if (document.querySelector('#freqCV')) rFreqChart(); if (document.querySelector('#heatCV')) rHeat(); };
+  const onResize = () => { rsCV(); if (document.querySelector('#freqCV')) rFreqChart(); if (document.querySelector('#heatCV')) rHeat(); if (document.querySelector('#ctrlLine')) rCtrl(); };
   window.addEventListener('resize', onResize);
 
   // --- Toast ---
@@ -945,6 +947,12 @@ export function initBrasileirao(root) {
     ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
     ctx.strokeRect(m, m, cssW - 2 * m, cssH - 2 * m);
     ctx.beginPath(); ctx.moveTo(cssW / 2, m); ctx.lineTo(cssW / 2, cssH - m); ctx.stroke();
+  }
+
+  // --- Painel de Controle: histórico agregado ---
+  function rCtrl() {
+    const con = $('ctrlCon');
+    renderPanel(con);
   }
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---
