@@ -14,6 +14,7 @@ import { base44 } from '@/api/base44Client';
 import { renderPanel } from './panel';
 import { fetchRealRound, assignDates, renderRealRound } from './realRound';
 import { renderCoachPanel } from './coachPanel';
+import { renderRoundCompare } from './roundCompare';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -763,10 +764,12 @@ export function initBrasileirao(root) {
         <button id="bHeat" style="padding:6px 12px;background:rgba(255,120,40,.1);border:1px solid #ff7820;color:#ff9b4d;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-fire"></i> Mapa de Calor</button>
         <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
         <button id="bExp" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+        <button id="bComp" style="padding:6px 12px;background:rgba(255,120,40,.1);border:1px solid #ff7820;color:#ff9b4d;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-balance-scale"></i> vs Rodada Real</button>
       </div>
       <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
       <div id="intAI" style="margin-top:6px"></div>
       <div id="intHeat" style="margin-top:6px"></div>
+      <div id="intComp" style="margin-top:6px"></div>
       </div>`;
     $('bCalib').onclick = () => {
       const ms = roundRobin(B20).flat().slice(0, 10);
@@ -778,6 +781,7 @@ export function initBrasileirao(root) {
     $('bRel').onclick = rIntRelatorio;
     $('bHeat').onclick = rHeat;
     $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
+    $('bComp').onclick = () => renderRoundCompare($('intComp'));
     $('bExp').onclick = async () => {
       toast('Exportando histórico...', 'ok');
       try {
