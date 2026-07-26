@@ -6,7 +6,7 @@ import { roundRobin, predictMatches } from './rodada';
 import { parseCSV, applyImport, clearImport } from './statsImport';
 import { REAL_TABLE } from './realStats';
 import { descriptive, pearson, linearRegression, anova, welchTTest } from './statEngine';
-import { runCalibration, getMetrics, clearHistory } from './learning';
+import { runCalibration, getMetrics, clearHistory, getHistory } from './learning';
 import { getCorrections } from './corrections';
 import { base44 } from '@/api/base44Client';
 
@@ -627,6 +627,7 @@ export function initBrasileirao(root) {
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
         <button id="bCalib" style="padding:6px 12px;background:rgba(0,230,118,.1);border:1px solid var(--ac);color:var(--ac);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-bolt"></i> Calibrar (10 partidas)</button>
         <button id="bIntAI" style="padding:6px 12px;background:rgba(99,102,241,.12);border:1px solid #6366f1;color:#818cf8;border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-robot"></i> Intuição IA</button>
+        <button id="bRel" style="padding:6px 12px;background:rgba(41,182,246,.12);border:1px solid var(--ob);color:var(--ob);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-file-medical-alt"></i> Relatório</button>
         <button id="bIntClr" style="padding:6px 12px;background:rgba(255,82,82,.1);border:1px solid var(--dn);color:var(--dn);border-radius:6px;cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px"><i class="fas fa-trash"></i> Limpar</button>
       </div>
       <div id="intMetrics">${m ? metricsHTML(m, c) : '<div style="color:var(--mt);font-size:11px;padding:6px">Nenhum dado ainda. Clique em Calibrar.</div>'}</div>
@@ -639,6 +640,7 @@ export function initBrasileirao(root) {
       toast('Calibração: ' + r.metrics.n + ' partidas · acerto ' + r.metrics.accuracy + '%', 'ok');
     };
     $('bIntAI').onclick = rIntAI;
+    $('bRel').onclick = rIntRelatorio;
     $('bIntClr').onclick = () => { clearHistory(); rInt(); toast('Histórico e correções limpos', 'wr'); };
   }
   async function rIntAI() {
@@ -659,6 +661,110 @@ export function initBrasileirao(root) {
     } catch (e) {
       box.innerHTML = '<div style="color:var(--dn);font-size:11px">Falha: ' + e.message + '</div>';
     }
+  }
+
+  // --- Relatório detalhado: previsões passadas vs resultados reais ---
+  function rIntRelatorio() {
+    const hist = getHistory();
+    const c = getCorrections();
+    const box = $('intAI');
+    if (!hist || !hist.length) {
+      box.innerHTML = '<div class="pnl" style="padding:8px;background:var(--cd2);color:var(--mt);font-size:11px">Sem histórico ainda. Clique em <b>Calibrar</b> (uma ou mais vezes) para gerar previsões e resultados comparáveis.</div>';
+      return;
+    }
+    const errType = (r) => {
+      const fav = r.pred.win >= r.pred.draw && r.pred.win >= r.pred.loss ? 'W'
+        : r.pred.draw >= r.pred.loss ? 'D' : 'L';
+      const hit = fav === r.act.outcome;
+      if (hit) return { hit: true, tag: 'Acerto', cls: 'ok' };
+      // diagnosticar o tipo de erro
+      const predFavStrong = Math.max(r.pred.win, r.pred.draw, r.pred.loss);
+      const confGap = predFavStrong - Math.min(r.pred.win, r.pred.draw, r.pred.loss);
+      if (r.act.outcome === 'D' && fav !== 'D') return { hit: false, tag: 'Subestimou empate', cls: 'wr' };
+      if (fav === 'D' && r.act.outcome !== 'D') return { hit: false, tag: 'Superestimou empate', cls: 'wr' };
+      if (fav === 'W' && r.act.outcome === 'L') return { hit: false, tag: 'Inverteu mando', cls: 'dn' };
+      if (fav === 'L' && r.act.outcome === 'W') return { hit: false, tag: 'Subestimou mando', cls: 'dn' };
+      if (confGap < 8) return { hit: false, tag: 'Jogo equilibrado (decisão de cabo)', cls: 'wr' };
+      return { hit: false, tag: 'Favorito errou', cls: 'dn' };
+    };
+    const rows = [...hist].reverse().map((r, i) => {
+      const e = errType(r);
+      const fav = r.pred.win >= r.pred.draw && r.pred.win >= r.pred.loss ? 'VIT ' + r.h
+        : r.pred.draw >= r.pred.loss ? 'EMP' : 'VIT ' + r.a;
+      const real = r.act.outcome === 'W' ? r.h : r.act.outcome === 'L' ? r.a : 'Empate';
+      const predScore = `${Math.round(r.pred.xgH)}x${Math.round(r.pred.xgA)}`;
+      const realScore = `${r.act.h}x${r.act.a}`;
+      const colorCls = e.cls;
+      const col = e.cls === 'ok' ? 'var(--ac)' : e.cls === 'wr' ? 'var(--ac2)' : 'var(--dn)';
+      const bar = (p, col) => `<div style="display:flex;align-items:center;gap:3px"><span style="width:24px;font-size:8px;color:var(--mt)">${p.label}</span><div style="flex:1;height:4px;background:var(--bd);border-radius:2px;overflow:hidden"><div style="height:100%;width:${p.v}%;background:${col}"></div></div><span style="width:32px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:9px;text-align:right">${p.v}%</span></div>`;
+      return `<div class="rrow ${colorCls}">
+        <div class="rrow-h"><span class="rrow-i">#${hist.length - i}</span><span class="rrow-m">${r.h} x ${r.a}</span><span class="rrow-fav">Fav: <b>${fav}</b></span></div>
+        <div class="rrow-bars">
+          ${bar({label:'V', v:r.pred.win}, 'var(--hm)')}
+          ${bar({label:'E', v:r.pred.draw}, 'var(--ac2)')}
+          ${bar({label:'D', v:r.pred.loss}, 'var(--aw)')}
+        </div>
+        <div class="rrow-res">
+          <span>Prev: <b style="color:var(--oo)">${predScore}</b></span>
+          <span>Real: <b style="color:var(--ac)">${realScore}</b></span>
+          <span>Resultou: <b style="color:${col}">${real}</b></span>
+        </div>
+        <div class="rrow-tag" style="color:${col}">${e.tag}</div>
+      </div>`;
+    }).join('');
+    // agrega contagem de tipos de erro
+    const stats = { acertos: 0, subEmp: 0, supEmp: 0, invMando: 0, subMando: 0, equilibrado: 0, favErrou: 0 };
+    hist.forEach(r => {
+      const e = errType(r);
+      if (e.hit) stats.acertos++;
+      else if (e.tag === 'Subestimou empate') stats.subEmp++;
+      else if (e.tag === 'Superestimou empate') stats.supEmp++;
+      else if (e.tag === 'Inverteu mando') stats.invMando++;
+      else if (e.tag === 'Subestimou mando') stats.subMando++;
+      else if (e.tag === 'Jogo equilibrado (decisão de cabo)') stats.equilibrado++;
+      else stats.favErrou++;
+    });
+    const n = hist.length;
+    // diagnosticar ajuste de pesos
+    const m = getMetrics();
+    const diag = [];
+    if (m.actHomeRate > m.predHomeRate + 3) diag.push({ v: 'homeAdv', up: true, txt: `Mando de campo subestimado — real ${m.actHomeRate}% vs prev ${m.predHomeRate}%. Aumentando peso.` });
+    else if (m.predHomeRate > m.actHomeRate + 3) diag.push({ v: 'homeAdv', up: false, txt: `Mando superestimado — real ${m.actHomeRate}% vs prev ${m.predHomeRate}%. Reduzindo peso.` });
+    if (m.actDrawRate > m.predDrawRate + 3) diag.push({ v: 'drawBias', up: true, txt: `Empates subestimados — real ${m.actDrawRate}% vs prev ${m.predDrawRate}%. Aumentando viés de empate.` });
+    else if (m.predDrawRate > m.actDrawRate + 3) diag.push({ v: 'drawBias', up: false, txt: `Empates superestimados — real ${m.actDrawRate}% vs prev ${m.predDrawRate}%. Reduzindo viés de empate.` });
+    if (m.actGoals > m.predGoals + 0.3) diag.push({ v: 'goalScale', up: true, txt: `Gols subestimados — real ${m.actGoals}/jogo vs prev ${m.predGoals}. Aumentando escala de gols.` });
+    else if (m.predGoals > m.actGoals + 0.3) diag.push({ v: 'goalScale', up: false, txt: `Gols superestimados — real ${m.actGoals}/jogo vs prev ${m.predGoals}. Reduzindo escala de gols.` });
+    if (!diag.length) diag.push({ v: '-', up: null, txt: 'Sem viés sistemático relevante — motor calibrado dentro da tolerância.' });
+    const corrRows = [
+      { k: 'homeAdv', label: 'Mando de campo', val: c.homeAdv, def: 0.18, hint: 'Multiplica o ataque do mandante no Dixon-Coles' },
+      { k: 'drawBias', label: 'Viés de empate', val: c.drawBias, def: 1, hint: 'Repondera placares iguais na grade Poisson' },
+      { k: 'goalScale', label: 'Escala de gols', val: c.goalScale, def: 1, hint: 'Multiplica lambdaH/lambdaA no Monte Carlo' }
+    ].map(x => {
+      const delta = x.val - x.def;
+      const arr = delta > 0.005 ? '▲' : delta < -0.005 ? '▼' : '·';
+      const col = delta > 0.005 ? 'var(--ac)' : delta < -0.005 ? 'var(--dn)' : 'var(--mt)';
+      return `<div class="cw-card"><div class="cw-h">${x.label}</div><div class="cw-val" style="color:${col}">${x.val}<span class="cw-arr">${arr}</span></div><div class="cw-def">base ${x.def} · ${x.hint}</div></div>`;
+    }).join('');
+    box.innerHTML = `
+      <div class="pnl" style="padding:8px;margin-top:6px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-file-medical-alt"></i> Relatório Detalhado — ${n} previsões vs resultados reais</div>
+        <div class="rel-sum">
+          <div class="rel-sum-ok">Acertos: <b style="color:var(--ac)">${stats.acertos}/${n}</b> (${(stats.acertos/n*100).toFixed(1)}%)</div>
+          <div class="rel-sum-wr">Subestimou empate: <b>${stats.subEmp}</b></div>
+          <div class="rel-sum-wr">Superestimou empate: <b>${stats.supEmp}</b></div>
+          <div class="rel-sum-dn">Inverteu mando: <b>${stats.invMando}</b></div>
+          <div class="rel-sum-dn">Subestimou mando: <b>${stats.subMando}</b></div>
+          <div class="rel-sum-wr">Equilibrado: <b>${stats.equilibrado}</b></div>
+          <div class="rel-sum-dn">Favorito errou: <b>${stats.favErrou}</b></div>
+        </div>
+        <div class="rel-diag">${diag.map(d => `<div class="rel-diag-row"><i class="fas fa-${d.up === null ? 'check' : d.up ? 'arrow-up' : 'arrow-down'}" style="color:${d.up === null ? 'var(--ac)' : d.up ? 'var(--ac)' : 'var(--dn)'}"></i> ${d.txt}</div>`).join('')}</div>
+      </div>
+      <div class="pnl" style="padding:8px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-sliders-h"></i> Ajuste de pesos aplicado às próximas previsões</div>
+        <div class="cw-grid">${corrRows}</div>
+        <div style="font-size:9px;color:var(--mt);margin-top:5px;line-height:1.4">▲ acima do baseline (peso aumentado) · ▼ abaixo (peso reduzido) · · dentro da tolerância. Os pesos entram no Dixon-Coles e no Monte Carlo das próximas simulações.</div>
+      </div>
+      <div class="pnl" style="padding:8px"><div class="pt" style="border:none;margin:0 0 6px"><i class="fas fa-list-ol"></i> Previsões vs resultados (mais recente primeiro)</div>
+        <div class="rel-list">${rows}</div>
+      </div>`;
   }
 
   // --- Importar estatisticas reais (CSV do Google Sheets) ---

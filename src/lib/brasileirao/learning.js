@@ -68,6 +68,7 @@ export function computeMetrics(recs) {
 }
 
 export function getMetrics() { return computeMetrics(loadHist()); }
+export function getHistory() { return loadHist(); }
 
 export function learnFromHistory(recs) {
   recs = recs || loadHist();

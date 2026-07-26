@@ -141,3 +141,32 @@ nav{display:flex;gap:3px;margin-bottom:8px;overflow-x:auto}nav button{flex-shrin
 .corr-cell{padding:4px 2px;text-align:center;font-family:Rajdhani,sans-serif;font-weight:700;border-radius:2px}
 .corr-h{color:var(--mt);font-weight:400;font-size:8px;text-align:center;padding:2px;white-space:nowrap}
 .corr-lbl{color:var(--tx);font-size:8px;padding:2px 4px;text-align:right;white-space:nowrap}
+.rel-sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:5px;margin-bottom:8px}
+.rel-sum div{background:var(--cd2);padding:6px 8px;border-radius:5px;font-size:10px;color:var(--mt)}
+.rel-sum b{font-family:Rajdhani,sans-serif;font-size:13px}
+.rel-sum-ok{border-left:3px solid var(--ac)!important}
+.rel-sum-wr{border-left:3px solid var(--ac2)!important}
+.rel-sum-dn{border-left:3px solid var(--dn)!important}
+.rel-diag{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--bd);padding-top:6px}
+.rel-diag-row{font-size:10px;color:var(--tx);display:flex;align-items:center;gap:6px;line-height:1.4}
+.rel-diag-row i{flex-shrink:0}
+.cw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.cw-card{background:var(--cd2);border:1px solid var(--bd);border-radius:6px;padding:7px 9px}
+.cw-h{font-size:10px;color:var(--mt);margin-bottom:2px}
+.cw-val{font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:4px}
+.cw-arr{font-size:13px}
+.cw-def{font-size:8px;color:var(--mt);line-height:1.3;margin-top:2px}
+.rel-list{display:flex;flex-direction:column;gap:5px;max-height:460px;overflow-y:auto}
+.rrow{background:var(--cd2);border:1px solid var(--bd);border-left:3px solid var(--mt);border-radius:6px;padding:7px 9px}
+.rrow.ok{border-left-color:var(--ac)}
+.rrow.wr{border-left-color:var(--ac2)}
+.rrow.dn{border-left-color:var(--dn)}
+.rrow-h{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.rrow-i{font-family:Rajdhani,sans-serif;font-weight:700;font-size:10px;color:var(--mt);min-width:26px}
+.rrow-m{font-size:11px;font-weight:600;flex:1;min-width:120px}
+.rrow-fav{font-size:9px;color:var(--mt)}
+.rrow-fav b{color:var(--ob)}
+.rrow-bars{display:grid;gap:2px;margin-bottom:5px}
+.rrow-res{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--mt)}
+.rrow-res b{font-family:Rajdhani,sans-serif}
+.rrow-tag{font-family:Rajdhani,sans-serif;font-weight:700;font-size:11px;margin-top:4px;text-align:right}
