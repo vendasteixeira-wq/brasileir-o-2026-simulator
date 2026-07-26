@@ -429,6 +429,8 @@ class MP extends Ent {
     this.hb = false; this.st = 'POS';
     this.fc = new V(hm ? 1 : -1, 0);
     this.en = 100; this.tcd = 0; this._h = null; this._a = null;
+    this._eff = 0; this.peak = 100; this.perf = 100;
+    this.pst = { pa: 0, pc: 0, er: 0, tk: 0, dr: 0, sh: 0, ot: 0 };
   }
   up(dt) {
     this.v.x *= 0.92; this.v.y *= 0.92;
@@ -437,6 +439,10 @@ class MP extends Ent {
     this.p.x = Math.max(PR, Math.min(PW - PR, this.p.x));
     this.p.y = Math.max(PR, Math.min(PH - PR, this.p.y));
     if (this.tcd > 0) this.tcd -= dt;
+    this._eff += this.v.ln() * dt;
+    this.en = Math.max(45, 100 - this._eff * 0.018);
+    this.perf = Math.max(20, this.en * 0.55 + 40 - this.pst.er * 2.5 + this.pst.pc * 0.6 + this.pst.tk * 0.8 + this.pst.ot * 1.2 - this.pst.dr * 1.5);
+    if (this.perf > this.peak) this.peak = this.perf;
   }
   mt(t, dt) {
     const dir = t.sub(this.p), dist = dir.ln();
@@ -770,10 +776,11 @@ export class Sim {
     this.bl.kick(dir.a(new V((Math.random() - 0.5) * er, (Math.random() - 0.5) * er)), pw * (0.7 + Math.random() * 0.3), spin);
     this.bl.og = pw < 350;
     this.st[p.tm].sh++;
+    p.pst.sh++;
     const gc = new V(gx, PH / 2);
     const pred = this.bl.p.c().as(this.bl.v, this.bl.p.dt(gc) / Math.max(1, this.bl.v.ln()));
     const ot = Math.abs(pred.y - PH / 2) < GH / 2 - 5;
-    if (ot) this.st[p.tm].ot++;
+    if (ot) { this.st[p.tm].ot++; p.pst.ot++; } else p.pst.er++;
     this.aev(Math.floor(this.gt / 60), 'sh', `${p.d.name} chuta!${ot ? ' No alvo!' : ' Fora!'}${xg >= 0.3 ? ' (xG ' + xg.toFixed(2) + ')' : ''}`);
   }
 
@@ -800,8 +807,9 @@ export class Sim {
     this.bl.kick(dir.a(new V((Math.random() - 0.5) * er, (Math.random() - 0.5) * er)), pw, 0);
     this.bl.og = true;
     this.st[p.tm].pa++;
-    if (fa > 0.6) this.st[p.tm].pc++;
-    else this.heat.wp.push(+(p.p.x / PW).toFixed(3), +(p.p.y / PH).toFixed(3));
+    p.pst.pa++;
+    if (fa > 0.6) { this.st[p.tm].pc++; p.pst.pc++; }
+    else { this.heat.wp.push(+(p.p.x / PW).toFixed(3), +(p.p.y / PH).toFixed(3)); p.pst.er++; }
     if (isK) this.st[p.tm].kr++;
   }
 
@@ -821,6 +829,7 @@ export class Sim {
           p.hb = false;
           this.bl.kick(p.p.sub(o.p).nm(), 100 + Math.random() * 100, 0);
           this.st[o.tm].tk++;
+          p.pst.dr++;
         }
       }
     });
@@ -838,9 +847,11 @@ export class Sim {
         c.hb = false;
         this.bl.kick(p.p.sub(c.p).nm(), 80 + Math.random() * 60, 0);
         this.st[p.tm].tk++;
+        p.pst.tk++;
         this.aev(Math.floor(this.gt / 60), 'fl', `${p.d.name} desarma ${c.d.name}`);
       } else {
         this.st[p.tm].fl++;
+        p.pst.er++;
         this.aev(Math.floor(this.gt / 60), 'fl', `Falta de ${p.d.name}`);
       }
     }
@@ -956,6 +967,25 @@ export class Sim {
     return i.map(([l, v, c]) =>
       `<div class="pi"><div class="pl">${l}</div><div class="pb"><div class="pf" style="width:${Math.min(100, v)}%;background:${c}"></div></div><div class="pv" style="color:${c}">${v.toFixed(1)}%</div></div>`
     ).join('');
+  }
+
+  gSub() {
+    const sug = [];
+    ['h', 'a'].forEach(tm => {
+      const starters = tm === 'h' ? this.hp : this.ap;
+      const ranked = [...starters].filter(p => p.d.pos !== 'GK').map(p => ({ p, drop: p.peak - p.perf, perf: p.perf })).sort((a, b) => b.drop - a.drop);
+      const out = ranked[0];
+      if (!out || out.drop < 18) return;
+      const clubName = tm === 'h' ? this.hc : this.ac;
+      const all = gtp(clubName);
+      const inXI = new Set(starters.map(s => s.d.name));
+      const bench = all.filter(p => !inXI.has(p.name) && p.pos !== 'GK');
+      let best = null, bs = -1;
+      bench.forEach(b => { const c = pco(out.p.d.pos, b); const sc = c * 100 + b.ovr; if (c > 0 && sc > bs) { bs = sc; best = b; } });
+      if (!best && bench.length) best = bench.sort((a, b) => b.ovr - a.ovr)[0];
+      sug.push({ tm, club: clubName, out: out.p.d.name, outPos: out.p.d.pos, outPerf: +out.perf.toFixed(0), drop: +out.drop.toFixed(0), in: best ? best.name : 'Reserva', inOvr: best ? best.ovr : null, inPos: best ? best.pos : out.p.d.pos, minute: this.gm(), hasBench: !!best });
+    });
+    return sug;
   }
 }
 

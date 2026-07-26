@@ -18,6 +18,7 @@ export function initBrasileirao(root) {
   let SIM = null;
   let USQ = new Array(11).fill(null);
   let heatAcc = { mv: [], wp: [] };
+  let tacT = 0;
   let CF = '4-3-3';
   let SS = -1;
   let lt = 0;
@@ -106,6 +107,23 @@ export function initBrasileirao(root) {
       <div style="color:var(--mt);font-size:8px;text-align:center;margin-top:4px">Monte Carlo · Dixon-Coles · 3000x</div>`;
   }
 
+  // --- Painel tático: sugestões de substituição por queda de desempenho ---
+  function rTac() {
+    const box = $('tpnl');
+    if (!box) return;
+    if (!SIM) { box.innerHTML = '<div style="color:var(--mt);font-size:10px;text-align:center;padding:6px;font-family:Rajdhani,sans-serif">Inicie uma partida ao vivo para análise tática.</div>'; return; }
+    const sug = SIM.gSub();
+    if (!sug.length) { box.innerHTML = '<div style="color:var(--mt);font-size:10px;text-align:center;padding:6px;font-family:Rajdhani,sans-serif">Desempenho estável — sem substituições recomendadas.</div>'; return; }
+    box.innerHTML = sug.map(s => `<div style="background:var(--cd2);border:1px solid var(--bd);border-radius:6px;padding:6px;margin-bottom:5px;font-family:Rajdhani,sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-weight:700;color:${s.tm === 'h' ? 'var(--hm)' : 'var(--aw)'};font-size:11px"><i class="fas fa-clipboard-list"></i> ${s.club}</span><span style="color:var(--mt);font-size:9px">${s.minute}'</span></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px">
+        <div style="flex:1;text-align:center;color:var(--dn)"><i class="fas fa-arrow-down"></i><div style="font-weight:700">${s.out}</div><div style="color:var(--mt);font-size:8px">${s.outPos} · perf ${s.outPerf} · ▼${s.drop}</div></div>
+        <i class="fas fa-exchange-alt" style="color:var(--mt)"></i>
+        <div style="flex:1;text-align:center;color:var(--ac)"><i class="fas fa-arrow-up"></i><div style="font-weight:700">${s.in}</div><div style="color:var(--mt);font-size:8px">${s.inPos}${s.hasBench ? ' · OVR ' + s.inOvr : ' · reserva'}</div></div>
+      </div>
+    </div>`).join('');
+  }
+
   // --- Intel pre-jogo via Gemini (web search) ---
   async function rIntel() {
     const h = $('ht').value, a = $('at').value;
@@ -180,6 +198,7 @@ export function initBrasileirao(root) {
     rsCV();
     SIM = new Sim(cv, h, a);
     SIM.start();
+    rTac();
     toast('Partida: ' + h + ' vs ' + a, 'ok');
   });
   $('bP').addEventListener('click', () => { if (SIM) SIM.pause(); });
@@ -211,6 +230,7 @@ export function initBrasileirao(root) {
     mst.innerHTML = '';
     elog.innerHTML = '';
     ppnl.innerHTML = '';
+    rTac();
   });
   $('bSp').addEventListener('click', () => {
     si = (si + 1) % speeds.length;
@@ -260,6 +280,8 @@ export function initBrasileirao(root) {
       mst.innerHTML = SIM.gSH();
       elog.innerHTML = SIM.gEH();
       ppnl.innerHTML = SIM.gPH();
+      tacT += dt;
+      if (tacT >= 1) { tacT = 0; rTac(); }
     } else {
       lt = 0;
       if (SIM) SIM.render();
