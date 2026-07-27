@@ -15,6 +15,7 @@ import { renderPanel } from './panel';
 import { fetchRealRound, assignDates, renderRealRound } from './realRound';
 import { renderCoachPanel } from './coachPanel';
 import { renderRoundCompare } from './roundCompare';
+import { renderFormationAnalysis, playerFit } from './formationAnalysis';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -505,6 +506,7 @@ export function initBrasileirao(root) {
     const q = ($('dbs').value || '').toLowerCase();
     const lg = $('dbl').value;
     const pos = $('dbp').value;
+    const form = $('dbf').value;
     const sort = $('dbs2').value;
     let filtered = PL.filter(p => {
       if (q && !p.name.toLowerCase().includes(q)) return false;
@@ -512,25 +514,52 @@ export function initBrasileirao(root) {
       if (pos && pc(p.pos) !== pos) return false;
       return true;
     });
-    filtered.sort((a, b) => b[sort] - a[sort]);
-    $('dgr').innerHTML = filtered.slice(0, 60).map(p => {
-      const stats = [['PAC', p.pac], ['SHO', p.sho], ['PAS', p.pas], ['DRI', p.dri], ['DEF', p.def], ['PHY', p.phy]];
-      return `<div class="dc">
-        <div class="do">${p.ovr}</div>
-        <div class="dp">${p.pos} · ${p.nation}</div>
-        <div class="dn">${p.name}</div>
-        <div class="dk">${p.club} · ${(LG[p.league] || {}).name || p.league}</div>
-        <div class="da">${stats.map(([l, v]) =>
-          `<div class="dr"><span class="dl">${l}</span><span class="dv" style="color:${rc(v)}">${v}</span></div>`
-        ).join('')}</div>
-        <div class="ob"><span class="ol">xG</span><div class="obb"><div class="of" style="background:var(--oo);width:${Math.min(100, p.xG90 * 100)}%"></div></div><span class="ov2">${p.xG90}</span></div>
-        <div class="ob"><span class="ol">xA</span><div class="obb"><div class="of" style="background:var(--ob);width:${Math.min(100, p.xA90 * 100)}%"></div></div><span class="ov2">${p.xA90}</span></div>
-      </div>`;
-    }).join('');
+    if (form) {
+      // Ordena por encaixe na formação (fit * OVR) — jogadores que se adaptam melhor aparecem primeiro
+      filtered = filtered.map(p => ({ p, fit: playerFit(p, form) }))
+        .filter(x => x.fit > 0)
+        .sort((a, b) => (b.fit * 100 + b.p.ovr) - (a.fit * 100 + a.p.ovr))
+        .slice(0, 60);
+      $('dgr').innerHTML = filtered.map(({ p, fit }) => {
+        const stats = [['PAC', p.pac], ['SHO', p.sho], ['PAS', p.pas], ['DRI', p.dri], ['DEF', p.def], ['PHY', p.phy]];
+        const fitBadge = `<span class="do" style="position:absolute;top:6px;right:6px;font-size:9px;padding:1px 5px;border-radius:8px;background:${fit >= 1 ? 'rgba(0,230,118,.15)' : 'rgba(255,214,0,.12)'};color:${fit >= 1 ? 'var(--ac)' : 'var(--ac2)'};border:1px solid ${fit >= 1 ? 'var(--ac)' : 'var(--ac2)'}">${fit >= 1 ? 'Encaixa' : 'Adapta'}</span>`;
+        return `<div class="dc" style="position:relative">
+          ${fitBadge}
+          <div class="do">${p.ovr}</div>
+          <div class="dp">${p.pos} · ${p.nation}</div>
+          <div class="dn">${p.name}</div>
+          <div class="dk">${p.club} · ${(LG[p.league] || {}).name || p.league}</div>
+          <div class="da">${stats.map(([l, v]) =>
+            `<div class="dr"><span class="dl">${l}</span><span class="dv" style="color:${rc(v)}">${v}</span></div>`
+          ).join('')}</div>
+          <div class="ob"><span class="ol">xG</span><div class="obb"><div class="of" style="background:var(--oo);width:${Math.min(100, p.xG90 * 100)}%"></div></div><span class="ov2">${p.xG90}</span></div>
+          <div class="ob"><span class="ol">xA</span><div class="obb"><div class="of" style="background:var(--ob);width:${Math.min(100, p.xA90 * 100)}%"></div></div><span class="ov2">${p.xA90}</span></div>
+        </div>`;
+      }).join('');
+      renderFormationAnalysis($('dbAnal'), form);
+    } else {
+      filtered.sort((a, b) => b[sort] - a[sort]);
+      $('dgr').innerHTML = filtered.slice(0, 60).map(p => {
+        const stats = [['PAC', p.pac], ['SHO', p.sho], ['PAS', p.pas], ['DRI', p.dri], ['DEF', p.def], ['PHY', p.phy]];
+        return `<div class="dc">
+          <div class="do">${p.ovr}</div>
+          <div class="dp">${p.pos} · ${p.nation}</div>
+          <div class="dn">${p.name}</div>
+          <div class="dk">${p.club} · ${(LG[p.league] || {}).name || p.league}</div>
+          <div class="da">${stats.map(([l, v]) =>
+            `<div class="dr"><span class="dl">${l}</span><span class="dv" style="color:${rc(v)}">${v}</span></div>`
+          ).join('')}</div>
+          <div class="ob"><span class="ol">xG</span><div class="obb"><div class="of" style="background:var(--oo);width:${Math.min(100, p.xG90 * 100)}%"></div></div><span class="ov2">${p.xG90}</span></div>
+          <div class="ob"><span class="ol">xA</span><div class="obb"><div class="of" style="background:var(--ob);width:${Math.min(100, p.xA90 * 100)}%"></div></div><span class="ov2">${p.xA90}</span></div>
+        </div>`;
+      }).join('');
+      $('dbAnal').innerHTML = '';
+    }
   }
   $('dbs').addEventListener('input', rDB);
   $('dbl').addEventListener('change', rDB);
   $('dbp').addEventListener('change', rDB);
+  $('dbf').addEventListener('change', rDB);
   $('dbs2').addEventListener('change', rDB);
 
   // --- Loteria (Mega Sena, Quina & Lotofacil) ---
