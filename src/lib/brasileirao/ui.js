@@ -16,6 +16,7 @@ import { fetchRealRound, assignDates, renderRealRound } from './realRound';
 import { renderCoachPanel } from './coachPanel';
 import { renderRoundCompare } from './roundCompare';
 import { renderFormationAnalysis, playerFit } from './formationAnalysis';
+import { renderStream } from './stream';
 
 export function initBrasileirao(root) {
   document.body.classList.add('br-page');
@@ -266,6 +267,7 @@ export function initBrasileirao(root) {
   $('bI').addEventListener('click', rIntel);
   $('bInt').addEventListener('click', rIntel);
   $('bReal').addEventListener('click', rReality);
+  if ($('strPnl')) renderStream($('strPnl'), () => $('ht').value, () => $('at').value);
 
   $('bS').addEventListener('click', () => {
     if (SIM && SIM.run) return;
