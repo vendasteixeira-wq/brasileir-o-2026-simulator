@@ -51,16 +51,32 @@ export function renderStream(container, getHome, getAway) {
         'replay': { label: 'REPLAY', col: 'var(--ac2)', icon: 'fa-redo' }
       };
       const st = statusMap[norm(d.status)] || statusMap['agendado'];
+      // Lazy-load: só carrega o iframe pesado quando o usuário clica em play.
+      // Antes disso, mostra apenas a thumbnail (imagem leve) — não exige nada do app.
+      const ytId = (u) => {
+        if (!u) return null;
+        const m = String(u).match(/(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([A-Za-z0-9_-]{6,})/);
+        return m ? m[1] : null;
+      };
+      const vid = ytId(d.streamUrl) || ytId(d.highlightsUrl);
+      const embedUrl = d.streamUrl || d.highlightsUrl;
       let videoHTML = '';
-      if (d.streamUrl) {
-        videoHTML = `<div style="position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:6px;overflow:hidden;margin-bottom:6px">
-          <iframe src="${d.streamUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+      if (embedUrl) {
+        const thumb = vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : '';
+        const wrap = `strVid-${Math.random().toString(36).slice(2, 8)}`;
+        videoHTML = `<div id="${wrap}" style="position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:6px;overflow:hidden;margin-bottom:6px;cursor:pointer" data-embed="${embedUrl}">
+          ${thumb ? `<img src="${thumb}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.8" alt="thumb" loading="lazy">` : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mt);font-size:11px">Vídeo disponível</div>'}
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,0,0,.85);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.4)"><i class="fas fa-play"></i></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:9px;padding:4px 6px;font-family:Rajdhani,sans-serif;font-weight:700">${d.streamUrl ? 'Assistir transmissão' : 'Melhores momentos'} · clique para carregar</div>
         </div>`;
-      } else if (d.highlightsUrl) {
-        videoHTML = `<div style="position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:6px;overflow:hidden;margin-bottom:6px">
-          <iframe src="${d.highlightsUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-        </div>
-        <div style="font-size:9px;color:var(--mt);text-align:center;margin-bottom:4px"><i class="fas fa-film" style="color:var(--ac2)"></i> Melhores momentos / highlights</div>`;
+        // listener injetado depois do innerHTML
+        setTimeout(() => {
+          const node = out.querySelector('#' + wrap);
+          if (node) node.addEventListener('click', () => {
+            node.innerHTML = `<iframe src="${node.dataset.embed}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+            node.style.cursor = 'default';
+          });
+        }, 0);
       } else {
         videoHTML = `<div style="background:var(--cd2);border:1px dashed var(--bd);border-radius:6px;padding:14px;text-align:center;margin-bottom:6px">
           <i class="fas fa-video-slash" style="color:var(--mt);font-size:20px;margin-bottom:6px"></i>
